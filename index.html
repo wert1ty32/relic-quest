@@ -1,0 +1,2093 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Relic Quest — 3D-гра про дослідника артефактів у стилі туристичного скрапбука.">
+<style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui}img{max-width:100%}</style>
+</head>
+<body>
+<title>Relic Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Manrope:wght@500;600;700;800&family=Caveat:wght@600;700&display=swap">
+<style>
+/* Макет: повноекранна 3D-сцена, поверх — «скрапбук»-інтерфейс із таблеток і паперових карток. Єдиний світлий образ бренду. */
+:root{
+  color-scheme:light;
+  --cream:#F5F1E0; --paper:#FBF8EC; --forest:#1E5A2B; --forest-deep:#0F2E16; --ink:#173A1D; --text:#2B4A2E; --muted:#3C5E3F;
+  --orange:#D2601A; --orange-hover:#B04E12; --orange-deep:#8C3D0E; --lime-50:#EEF4DC; --lime-100:#E3EFC4; --lime-200:#CFE3A0; --lime-300:#C5DE8E;
+  --leaf:#8CC04F; --leaf-dark:#6FA83A; --warm:#F8E3CC; --stamp:#B3261E; --white:#FFFFFF; --sky:#BFE3F5; --gold:#E9A82A; --scrim:rgba(23,58,29,.45);
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif; --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif; --f-hand:"Caveat","Comic Sans MS",cursive;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px); --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+}
+[hidden]{display:none!important}
+html,body{height:100%;overflow:hidden;background:var(--sky);color:var(--text);font-family:var(--f-body);-webkit-user-select:none;user-select:none;touch-action:none}
+#app{position:fixed;inset:0}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+.cap{line-height:1;text-box:trim-both cap alphabetic}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;white-space:nowrap}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:14px 22px;border-radius:999px;font-family:var(--f-body);font-weight:800;font-size:15px;background:var(--forest);color:var(--cream);box-shadow:0 5px 0 var(--forest-deep);transition:transform .08s,box-shadow .08s,background .15s}
+.btn:hover{background:#153F1F}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--forest-deep)}
+.btn.o{background:var(--orange);color:var(--white);box-shadow:0 5px 0 var(--orange-deep)}
+.btn.o:hover{background:var(--orange-hover)}
+.btn.o:active{box-shadow:0 1px 0 var(--orange-deep)}
+.btn.ghost{background:var(--paper);color:var(--forest);border:2.5px solid var(--forest)}
+.btn.ghost:hover{background:var(--white)}
+.btn.big{font-family:var(--f-display);font-size:19px;padding:20px 34px;min-height:64px}
+.btn.sm{min-height:40px;padding:9px 14px;font-size:13px}
+.btn[disabled]{background:#8FA48E;color:var(--paper);border-color:#8FA48E;box-shadow:0 5px 0 #5E7360;cursor:not-allowed}
+.btn svg{width:22px;height:22px;flex:none}
+
+/* HUD */
+.hud{position:absolute;pointer-events:none;z-index:5}
+.hud *{pointer-events:auto}
+#logo{top:calc(14px + var(--safe-t));left:calc(16px + var(--safe-l));display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+#logo .t{font-family:var(--f-display);font-weight:800;font-size:22px;background:var(--orange);color:var(--white);padding:12px 18px;transform:rotate(-2deg);box-shadow:0 5px 0 var(--orange-deep)}
+#logo .s{font-family:var(--f-display);font-weight:700;font-size:10.5px;letter-spacing:.06em;background:var(--forest);color:var(--cream);padding:9px 13px;transform:rotate(1deg);margin-left:12px}
+#hearts{display:flex;gap:4px;margin:6px 0 0 8px;background:var(--paper);border:2px solid var(--forest);border-radius:999px;padding:6px 10px}
+#hearts svg{width:20px;height:20px}
+#money{top:calc(14px + var(--safe-t));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+#money .k{font-family:var(--f-display);font-weight:800;font-size:22px;background:var(--forest);color:var(--cream);padding:15px 24px;box-shadow:0 5px 0 var(--forest-deep);font-variant-numeric:tabular-nums}
+#money .k i{color:var(--lime-300);font-style:normal}
+#money .k.bump{animation:bump .35s}
+@keyframes bump{40%{transform:scale(1.08)}}
+#money .r{font-weight:800;font-size:13px;background:var(--paper);color:var(--forest);border:2px solid var(--forest);padding:7px 12px;transform:rotate(-1.5deg);font-variant-numeric:tabular-nums}
+#compass{position:relative;width:300px;height:34px;border:2px solid var(--forest);border-radius:999px;background:var(--paper);overflow:hidden}
+#compass .strip{position:absolute;top:0;bottom:0;left:0;width:100%}
+#compass span{position:absolute;top:50%;transform:translate(-50%,-50%);font-family:var(--f-display);font-weight:800;font-size:12px;color:var(--forest)}
+#compass span.m{font-family:var(--f-body);font-size:10px;color:var(--muted)}
+#compass .goal{position:absolute;top:3px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--orange);transform:translateX(-50%)}
+#compass .mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--orange);opacity:.5}
+#detector{font-weight:800;font-size:12.5px;background:var(--orange);color:var(--white);padding:8px 12px;border-radius:999px}
+#event{top:calc(176px + var(--safe-t));left:50%;transform:translateX(-50%) rotate(1deg);font-family:var(--f-display);font-weight:700;font-size:13px;background:var(--orange);color:var(--white);padding:12px 18px;border:2.5px solid var(--orange-deep);max-width:calc(100vw - 32px);white-space:normal;text-align:center}
+#side{top:calc(14px + var(--safe-t));right:calc(16px + var(--safe-r));display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+#bag{background:var(--lime-100);border:2.5px solid var(--forest);border-radius:22px;padding:12px 16px;transform:rotate(1.2deg);min-width:200px}
+#bag .l{font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#bag .v{font-family:var(--f-display);font-weight:800;font-size:17px;color:var(--forest);margin-top:6px;font-variant-numeric:tabular-nums}
+#bag .c{font-weight:700;font-size:13px;margin-top:6px}
+#map{width:200px;height:200px;border:3px solid var(--forest);border-radius:20px;background:var(--lime-50);transform:rotate(-1deg);box-shadow:0 8px 0 var(--forest);cursor:pointer}
+#menu{left:calc(16px + var(--safe-l));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+#menu .btn{min-height:44px;padding:11px 18px;font-size:14px}
+#menu .btn:nth-child(odd){transform:rotate(-.8deg)} #menu .btn:nth-child(even){transform:rotate(.8deg)}
+#menu .btn kbd{font-family:var(--f-body);font-size:11px;font-weight:800;opacity:.7;border:1.5px solid currentColor;border-radius:6px;padding:1px 5px}
+#corner{right:calc(16px + var(--safe-r));bottom:calc(16px + var(--safe-b));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#corner .row2{display:flex;gap:8px}
+#slock{font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--paper);color:var(--muted);border:2px solid var(--forest);border-radius:999px;padding:9px 13px;display:flex;align-items:center;gap:7px}
+#slock.on{background:var(--orange);color:var(--white);border-color:var(--orange-deep)}
+#slock svg{width:16px;height:16px}
+#crosshair{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2.5px solid var(--paper);box-shadow:0 0 0 2px var(--forest);z-index:4;pointer-events:none}
+#sound{width:44px;height:44px;border-radius:50%;background:var(--paper);border:2.5px solid var(--forest);color:var(--forest);display:grid;place-items:center}
+#sound svg{width:20px;height:20px}
+
+#quest{left:calc(16px + var(--safe-l));bottom:calc(16px + var(--safe-b));width:min(440px,calc(100vw - 32px));display:flex;gap:14px;align-items:center;background:var(--cream);border:3px solid var(--forest);border-radius:26px;padding:10px 16px 10px 10px;box-shadow:0 7px 0 var(--forest)}
+#quest img{width:88px;height:88px;border-radius:20px;background:var(--lime-200);border:2px solid var(--forest);flex:none;object-fit:cover}
+#quest .e{display:inline-block;border:2px solid var(--forest);border-radius:999px;padding:7px 11px;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--forest)}
+#quest p{margin:8px 0 0;font-weight:700;font-size:14px;line-height:1.4;color:var(--ink)}
+#bubble{left:calc(70px + var(--safe-l));bottom:calc(140px + var(--safe-b));max-width:min(340px,calc(100vw - 90px));background:var(--cream);border:3px solid var(--forest);border-radius:30px;padding:12px 18px;font-family:var(--f-hand);font-weight:700;font-size:25px;line-height:1.05;color:var(--forest);transform:rotate(-3deg);transition:opacity .2s, transform .25s cubic-bezier(.3,1.6,.5,1)}
+#bubble.off{opacity:0;transform:rotate(-7deg) scale(.9);pointer-events:none}
+
+#toasts{top:calc(176px + var(--safe-t));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+#event:not([hidden]) ~ #toasts{top:calc(226px + var(--safe-t))}
+.toast{display:flex;align-items:center;gap:10px;background:var(--paper);border:2.5px solid var(--c,var(--forest));border-radius:999px;padding:10px 16px;font-weight:700;font-size:14px;color:var(--ink);animation:tin .25s ease-out;max-width:calc(100vw - 32px)}
+.toast::before{content:"";width:11px;height:11px;border-radius:50%;background:var(--c,var(--forest));flex:none}
+.toast.out{opacity:0;transition:opacity .3s}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+
+#prompt{position:absolute;z-index:6;transform:translate(-50%,-100%);display:flex;align-items:center;gap:10px;background:var(--paper);border:2.5px solid var(--forest);border-radius:999px;padding:6px 16px 6px 6px;font-weight:800;font-size:14px;color:var(--ink);pointer-events:none;white-space:nowrap}
+#prompt .key{position:relative;width:38px;height:38px;border-radius:50%;background:var(--forest);color:var(--cream);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:15px}
+#prompt .key svg{position:absolute;inset:-4px;width:46px;height:46px;transform:rotate(-90deg)}
+#prompt small{display:block;font-weight:600;font-size:11px;color:var(--muted)}
+.wl{position:absolute;z-index:4;transform:translate(-50%,-100%);pointer-events:none;background:var(--cream);border:2px solid var(--forest);border-radius:999px;padding:7px 12px;font-weight:800;font-size:12px;color:var(--forest);white-space:nowrap}
+.wl.say{font-family:var(--f-hand);font-weight:700;font-size:22px;border-width:3px;border-radius:26px;padding:8px 14px;white-space:normal;width:max-content;max-width:240px;text-align:center;line-height:1.05;transform:translate(-50%,-100%) rotate(-3deg)}
+.wl.prog{display:flex;flex-direction:column;gap:6px;align-items:stretch;border-radius:16px;min-width:150px}
+.wl.prog b{display:block;height:9px;border-radius:999px;border:1.5px solid var(--forest);background:var(--lime-50);overflow:hidden}
+.wl.prog b i{display:block;height:100%;background:var(--orange)}
+.wl.prog.done{background:var(--orange);color:var(--white);border-color:var(--orange-deep)}
+.wl.cash{background:var(--orange);color:var(--white);border-color:var(--orange-deep);font-family:var(--f-display);font-size:13px}
+.wl.vis{font-family:var(--f-hand);font-size:20px;font-weight:700;border-radius:18px;padding:4px 10px}
+
+#fade{position:absolute;inset:0;z-index:30;pointer-events:none;background:var(--paper);opacity:0;transition:opacity .35s}
+#fade.on{opacity:1}
+#fade.red{background:#B3261E}
+
+/* мобільне керування */
+#touch{position:absolute;inset:0;z-index:3;display:none;pointer-events:none}
+#stick{position:absolute;left:calc(26px + var(--safe-l));bottom:calc(150px + var(--safe-b));width:130px;height:130px;border-radius:50%;background:rgba(251,248,236,.55);border:3px solid var(--forest);pointer-events:auto}
+#stick i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:var(--forest);box-shadow:0 4px 0 var(--forest-deep)}
+#tbtns{position:absolute;right:calc(20px + var(--safe-r));bottom:calc(150px + var(--safe-b));display:flex;gap:12px;align-items:flex-end;pointer-events:auto}
+#tbtns button{width:66px;height:66px;border-radius:50%;font-family:var(--f-display);font-weight:800;font-size:12px}
+#tAct{background:var(--orange);color:var(--white);box-shadow:0 5px 0 var(--orange-deep);width:84px!important;height:84px!important;font-size:22px!important}
+#tJump,#tRun{background:var(--paper);color:var(--forest);border:3px solid var(--forest)!important}
+#tRun.on{background:var(--forest);color:var(--cream)}
+
+/* модальні вікна */
+.scrim{position:absolute;inset:0;z-index:20;background:var(--scrim);display:grid;place-items:center;padding:calc(16px + var(--safe-t)) max(16px,var(--safe-r)) calc(16px + var(--safe-b)) max(16px,var(--safe-l))}
+.modal{position:relative;width:min(900px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--cream);border:3px solid var(--forest);border-radius:36px;box-shadow:0 10px 0 var(--forest);overflow:hidden;animation:mpop .28s cubic-bezier(.3,1.5,.5,1)}
+@keyframes mpop{from{transform:rotate(-2deg) scale(.96);opacity:0}}
+.modal header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px 16px 26px;background:var(--lime-50);background-image:repeating-linear-gradient(135deg,rgba(30,90,43,.08) 0 2px,transparent 2px 14px);border-bottom:2px solid var(--forest)}
+.modal h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(17px,3.2vw,25px);text-transform:uppercase;color:var(--forest);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.modal h2 .pill{background:var(--forest);color:var(--cream);padding:12px 18px;transform:rotate(-1.5deg)}
+.modal h2 .pill.o{background:var(--orange);color:var(--white)}
+.modal h2 .pill.r{background:#2F7D32}
+.modal h2 .pill.e{background:var(--orange)}
+.modal h2 .pill.l{background:var(--stamp);box-shadow:0 0 0 3px var(--gold)}
+.x{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--forest);background:var(--paper);color:var(--forest);display:grid;place-items:center;flex:none}
+.x svg{width:20px;height:20px}
+.modal .body{padding:22px 26px 26px;overflow:auto;min-height:0}
+.lead{margin:0 0 16px;font-weight:600;font-size:15px;line-height:1.5;max-width:62ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.card{position:relative;border:2.5px solid var(--forest);border-radius:24px;background:var(--lime-100);padding:10px 12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.grid .card:nth-child(4n+1){transform:rotate(-1deg)} .grid .card:nth-child(4n+2){transform:rotate(.8deg)} .grid .card:nth-child(4n+3){transform:rotate(-.6deg)} .grid .card:nth-child(4n){transform:rotate(1.2deg)}
+.card.dark{background:var(--forest);color:var(--cream)}
+.card.unk{background:var(--lime-50)}
+.card img{width:100%;aspect-ratio:1/0.8;object-fit:contain;max-width:100%}
+.card h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:13px;line-height:1.15;text-transform:uppercase;color:var(--forest);overflow-wrap:anywhere}
+.card.dark h3{color:var(--cream)}
+.chip{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;border:1.5px solid var(--leaf-dark);border-radius:999px;padding:6px 10px;font-weight:800;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;background:var(--paper);color:var(--text)}
+.chip i{width:9px;height:9px;border-radius:50%;display:block}
+.card .n{font-weight:800;font-size:13px;color:var(--orange);font-variant-numeric:tabular-nums}
+.card.dark .n{color:var(--lime-300)}
+.card .tag{position:absolute;top:10px;right:10px;font-family:var(--f-display);font-weight:700;font-size:11px;padding:7px 9px;border-radius:999px;background:var(--forest);color:var(--white)}
+.card.dark .tag{background:var(--orange)}
+.foot{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;padding-top:20px}
+.list{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:16px;border:2.5px solid var(--forest);border-radius:24px;padding:16px 18px;background:var(--paper);flex-wrap:wrap}
+.row:nth-child(even){background:var(--warm)}
+.row .ic{width:52px;height:52px;border-radius:16px;background:var(--forest);color:var(--white);display:grid;place-items:center;flex:none}
+.row .ic.o{background:var(--orange)}
+.row .ic svg{width:26px;height:26px}
+.row .info{flex:1 1 220px;min-width:0}
+.row h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:15px;text-transform:uppercase;color:var(--forest)}
+.row .lv{font-weight:800;font-size:13px;color:var(--orange-hover);margin-top:5px}
+.row p{margin:4px 0 0;font-weight:600;font-size:13px;color:var(--muted);line-height:1.45}
+.stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stats span{border:1.5px solid var(--leaf-dark);border-radius:999px;padding:4px 9px;font-weight:800;font-size:11px;background:var(--lime-50)}
+.owned{font-weight:800;font-size:12px;color:var(--forest);border:2px dashed var(--forest);border-radius:999px;padding:9px 13px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tabs button{border:2px solid var(--forest);border-radius:999px;padding:9px 14px;font-weight:800;font-size:13px;color:var(--forest);background:var(--paper)}
+.tabs button[aria-pressed="true"]{background:var(--forest);color:var(--cream)}
+.meter{height:24px;border-radius:999px;border:2px solid var(--forest);background:var(--lime-100);overflow:hidden;margin:6px 0 20px}
+.meter i{display:block;height:100%;background:var(--leaf)}
+.riddle q{display:block;quotes:none;font-family:var(--f-display);font-weight:800;font-size:clamp(17px,2.8vw,23px);line-height:1.3;color:var(--forest);text-align:center;margin:6px auto 20px;text-wrap:balance;max-width:40ch}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+.stages{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:18px;flex-wrap:wrap}
+.stages span{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--forest);border-radius:999px;padding:6px 11px;font-weight:800;font-size:12px;background:var(--paper)}
+.stages span.done{background:var(--forest);color:var(--cream)}
+.stages span.cur{background:var(--orange);color:var(--white);border-color:var(--orange-deep)}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:10px;justify-content:center}
+.keypad button{height:58px;border-radius:18px;border:2.5px solid var(--forest);background:var(--paper);font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--forest);box-shadow:0 4px 0 var(--forest)}
+.keypad button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--forest)}
+.display{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.2em;text-align:center;border:3px solid var(--forest);border-radius:18px;background:var(--lime-50);padding:12px;margin:0 auto 14px;width:220px;color:var(--ink);min-height:62px;font-variant-numeric:tabular-nums}
+.dials{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.dial{display:flex;flex-direction:column;align-items:center;gap:8px}
+.dial .face{width:92px;height:92px;border-radius:50%;border:4px solid var(--gold);background:var(--forest);color:var(--cream);display:grid;place-items:center;font-size:40px;box-shadow:0 5px 0 var(--orange-deep)}
+.dial small{font-weight:800;font-size:12px;color:var(--muted)}
+.journal{border:2px dashed var(--forest);border-radius:18px;padding:12px 14px;background:var(--paper);font-weight:700;font-size:13.5px;line-height:1.5;margin:0 0 16px}
+.err{color:var(--stamp);font-weight:800;text-align:center;min-height:20px;margin-top:12px}
+#mapWrap{position:relative;width:100%;aspect-ratio:1/1;max-height:calc(100vh - 200px);margin:0 auto}
+#bigmap{width:100%;height:100%;border:3px solid var(--forest);border-radius:22px;background:var(--lime-50);cursor:crosshair;display:block;max-width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12px;border:1.5px solid var(--forest);border-radius:999px;padding:5px 10px;background:var(--paper)}
+.legend i{width:12px;height:12px;border-radius:3px;display:block}
+.mapgrid{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px;align-items:start}
+.mapside h3{margin:0 0 8px;font-family:var(--f-display);font-size:13px;text-transform:uppercase;color:var(--forest)}
+.mapside ul{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:6px}
+.mapside li{font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:8px;border-bottom:1.5px dashed var(--lime-200);padding-bottom:5px}
+.mapside li b{color:var(--orange-hover)}
+
+/* стартовий екран */
+#start .modal{width:min(760px,100%)}
+.hero{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:26px 28px 6px}
+.hero h1{margin:0;font-family:var(--f-display);font-weight:800;text-transform:uppercase;color:var(--forest);line-height:1}
+.hero h1 .a{display:block;font-size:clamp(46px,9vw,78px);letter-spacing:-.02em}
+.hero h1 .b{display:inline-block;margin-top:10px;font-size:clamp(34px,6.5vw,56px);background:var(--orange);color:var(--white);border-radius:999px;padding:16px 26px;transform:rotate(-2deg);box-shadow:0 6px 0 var(--orange-deep)}
+.hero .sub{display:inline-block;margin-top:18px;font-family:var(--f-display);font-weight:700;font-size:14px;background:var(--forest);color:var(--cream);padding:11px 16px;border-radius:999px;transform:rotate(1deg)}
+.hero .fox{position:relative;width:min(210px,32vw)}
+.hero .fox img{width:100%;filter:drop-shadow(0 10px 14px rgba(21,63,31,.3))}
+.hero .say{position:absolute;left:-40%;top:-6px;background:var(--cream);border:3px solid var(--forest);border-radius:28px;padding:10px 14px;font-family:var(--f-hand);font-weight:700;font-size:23px;line-height:1;color:var(--forest);transform:rotate(-6deg);width:150px;text-align:center}
+.intro{padding:6px 28px 26px;display:flex;flex-direction:column;gap:16px}
+.intro p{margin:0;font-weight:600;font-size:15px;line-height:1.5;max-width:60ch}
+.keys{display:flex;flex-wrap:wrap;gap:8px}
+.keys span{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--forest);border-radius:999px;padding:7px 11px;font-weight:700;font-size:12.5px;background:var(--paper)}
+.keys b{font-family:var(--f-display);font-size:11px;background:var(--forest);color:var(--cream);border-radius:8px;padding:3px 6px}
+.startrow{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.stamp{display:inline-block;border:2.5px solid var(--stamp);color:var(--stamp);font-family:var(--f-display);font-weight:800;font-size:11px;padding:7px 10px;border-radius:8px;transform:rotate(-8deg)}
+#loading{position:absolute;left:50%;bottom:calc(30px + var(--safe-b));transform:translateX(-50%);z-index:21;font-weight:800;font-size:13px;background:var(--paper);border:2px solid var(--forest);border-radius:999px;padding:9px 14px;color:var(--forest)}
+
+@media (max-width:900px){ .mapgrid{grid-template-columns:1fr} }
+@media (max-width:760px){
+  #logo .t,#logo .s,#map{display:none}
+  #logo{top:calc(58px + var(--safe-t));left:calc(10px + var(--safe-l))}
+  #hearts{margin:0;padding:4px 8px} #hearts svg{width:15px;height:15px}
+  #money{top:calc(10px + var(--safe-t));left:calc(12px + var(--safe-l));transform:none;align-items:flex-start;gap:6px}
+  #money .k{font-size:15px;padding:11px 14px;box-shadow:0 4px 0 var(--forest-deep)}
+  #money .r{display:none}
+  #compass{width:170px;height:28px}
+  #side{top:calc(10px + var(--safe-t));right:calc(12px + var(--safe-r))}
+  #bag{min-width:0;padding:8px 12px;border-radius:18px}
+  #bag .l{font-size:10px} #bag .v{font-size:13px;margin-top:4px} #bag .c{font-size:11.5px;margin-top:3px}
+  #quest{top:calc(154px + var(--safe-t));bottom:auto;left:calc(12px + var(--safe-l));right:calc(12px + var(--safe-r));width:auto;padding:7px 12px 7px 7px;gap:10px;border-radius:20px;box-shadow:0 4px 0 var(--forest)}
+  #quest img{width:48px;height:48px;border-radius:13px}
+  #quest .e{font-size:10px;padding:5px 9px}
+  #quest p{font-size:12px;margin-top:5px;line-height:1.35}
+  #event{top:auto;bottom:calc(214px + var(--safe-b));font-size:11px;padding:10px 14px}
+  #toasts,#event:not([hidden]) ~ #toasts{top:calc(236px + var(--safe-t))}
+  .toast{font-size:12.5px;padding:8px 13px}
+  #bubble{bottom:calc(214px + var(--safe-b));left:calc(14px + var(--safe-l));font-size:20px;padding:10px 14px}
+  #menu{top:auto;bottom:calc(10px + var(--safe-b));left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));transform:none;flex-direction:row;justify-content:center;gap:6px}
+  #menu .btn{min-height:46px;width:46px;padding:0;transform:none!important;box-shadow:0 4px 0 var(--forest-deep)}
+  #menu .btn.o{box-shadow:0 4px 0 var(--orange-deep)}
+  #menu .btn span,#menu .btn kbd{display:none}
+  #corner{top:calc(104px + var(--safe-t));bottom:auto;right:calc(12px + var(--safe-r))}
+  #sound{width:40px;height:40px} #slock{padding:8px 10px}
+  #corner #slock span{display:none}
+  #stick{left:calc(18px + var(--safe-l));bottom:calc(76px + var(--safe-b));width:120px;height:120px}
+  #tbtns{right:calc(14px + var(--safe-r));bottom:calc(76px + var(--safe-b))}
+  .hero{grid-template-columns:1fr;padding:22px 20px 0}
+  .hero .fox{display:none}
+  .intro{padding:4px 20px 22px}
+  .modal .body{padding:16px}
+}
+@media (pointer:coarse){ #touch{display:block} .desk{display:none!important} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+
+<div id="app">
+  <canvas id="c" tabindex="0" aria-label="Ігровий світ Relic Quest"></canvas>
+  <div id="crosshair" hidden></div>
+
+  <div class="hud" id="logo"><span class="pill cap t">RELIC QUEST</span><span class="pill cap s">ТАЄМНИЦІ АРТЕФАКТІВ</span><div id="hearts" aria-label="Здоров'я"></div></div>
+  <div class="hud" id="money"><span class="pill cap k" id="kVal">0 грн</span><span class="pill cap r" id="rVal">≈ +0 грн / хв</span><div id="compass" hidden aria-label="Компас"><div class="strip" id="cStrip"></div><div class="mid"></div></div><span class="pill" id="detector" hidden></span></div>
+  <div class="hud pill" id="event" hidden></div>
+  <div class="hud" id="toasts" aria-live="polite"></div>
+  <div class="hud" id="side">
+    <div id="bag"><div class="l">Рюкзак</div><div class="v" id="bagVal">0 / 5 реліквій</div><div class="c" id="colVal">Колекція: 0 / 16</div></div>
+    <canvas id="map" width="400" height="400" aria-label="Мапа. Натисни, щоб відкрити велику"></canvas>
+  </div>
+  <div class="hud" id="menu">
+    <button class="btn" id="bCol" aria-label="Колекція"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6a2 2 0 0 0-2 2z"/><path d="M8 7h8M8 11h6"/></svg><span>Колекція</span> <kbd class="desk">C</kbd></button>
+    <button class="btn o" id="bStore" aria-label="Магазин"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18M9 20v-6h6v6"/></svg><span>Магазин</span> <kbd class="desk">B</kbd></button>
+    <button class="btn" id="bInv" aria-label="Інвентар"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v11H5z"/><path d="M9 5V3h6v2M9 13h6"/></svg><span>Інвентар</span> <kbd class="desk">I</kbd></button>
+    <button class="btn" id="bShop" aria-label="Покращення"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5L12 19l-3-3z"/><path d="M3 21l5-5"/></svg><span>Покращення</span> <kbd class="desk">U</kbd></button>
+    <button class="btn" id="bMap" aria-label="Карта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Карта</span> <kbd class="desk">M</kbd></button>
+    <button class="btn o" id="bHome" aria-label="Дім"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Дім</span> <kbd class="desk">H</kbd></button>
+    <button class="btn ghost" id="bReb" aria-label="Нова експедиція"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Нова експедиція</span></button>
+  </div>
+  <div class="hud" id="corner">
+    <div class="row2"><button id="sound" aria-label="Звук"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path id="sndWave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+    <button id="slock" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Shift Lock · R</span></button></div>
+  </div>
+  <div class="hud" id="quest"><img id="qFox" alt="Лисичка-дослідниця в панамі"><div><span class="e" id="qStep">Завдання 1</span><p id="qText"></p></div></div>
+  <div class="hud off" id="bubble" role="status" aria-live="polite"></div>
+  <div id="prompt" hidden><span class="key"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="none" stroke="#D2601A" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 200" id="pRing"/></svg><span id="pKey">E</span></span><span><span id="pText">Копати</span><small id="pObj"></small></span></div>
+  <div id="labels"></div>
+
+  <div id="touch"><div id="stick"><i></i></div><div id="tbtns"><button id="tRun" aria-label="Біг">БІГ</button><button id="tJump" aria-label="Стрибок">СТРИБ</button><button id="tAct" aria-label="Дія">E</button></div></div>
+  <div id="fade"></div>
+
+  <div class="scrim" id="start">
+    <div class="modal" role="dialog" aria-labelledby="stTitle">
+      <div class="hero">
+        <div><h1 id="stTitle"><span class="a">Relic</span><span class="b cap">Quest</span></h1><span class="sub cap">Таємниці артефактів</span></div>
+        <div class="fox"><div class="say">Ходімо шукати таємниці!</div><img id="stFox" alt="Квадратна лисичка-дослідниця махає лапкою"></div>
+      </div>
+      <div class="intro">
+        <p>Ти — молодий дослідник із власним музеєм. Розкопуй реліквії, досліджуй їх у лабораторії, виставляй артефакти й заробляй на відвідувачах, що приїжджають автобусом. А потім спускайся в стародавні данжі: каньйон, затоплений храм, гробницю й обсерваторію.</p>
+        <div class="keys desk"><span><b>WASD</b> рух</span><span><b>Shift</b> біг</span><span><b>Миша</b> тягни — камера</span><span><b>R</b> Shift Lock</span><span><b>Пробіл</b> стрибок</span><span><b>E</b> дія</span><span><b>F</b> ліхтарик</span><span><b>Q</b> аптечка</span><span><b>H</b> дім</span><span><b>M</b> карта</span><span><b>B</b> магазин</span><span><b>I</b> інвентар</span></div>
+        <div class="keys" id="touchKeys" hidden><span>Джойстик — рух</span><span>Тягни по екрану — камера</span><span><b>E</b> дія</span><span><b>БІГ</b> перемикач бігу</span></div>
+        <div class="startrow"><button class="btn o big" id="bStart" disabled>Завантаження світу…</button><button class="btn ghost" id="bReset" hidden>Почати з нуля</button><span class="stamp cap">Прогрес зберігається</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="scrim" id="modal" hidden><div class="modal" role="dialog" aria-labelledby="mTitle"><header><h2 id="mTitle"></h2><button class="x" id="mClose" aria-label="Закрити"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header><div class="body" id="mBody"></div></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+/* ================= Дані гри ================= */
+const COL={cream:"#F5F1E0",paper:"#FBF8EC",forest:"#1E5A2B",forestDeep:"#0F2E16",ink:"#173A1D",muted:"#3C5E3F",orange:"#D2601A",orangeHover:"#B04E12",orangeDeep:"#8C3D0E",pin:"#D33A2C",stamp:"#B3261E",
+ lime50:"#EEF4DC",lime100:"#E3EFC4",lime200:"#CFE3A0",lime300:"#C5DE8E",lime400:"#BFD98A",lime500:"#A8CB6E",leaf:"#8CC04F",leafDark:"#6FA83A",greenMid:"#2F7D32",warm:"#F8E3CC",tan:"#F4C27F",
+ fox:"#E2721E",foxDark:"#C9772E",boot:"#6B3E1E",earTip:"#3A2416",hat:"#E9C27F",sand:"#E9C27F",sandDark:"#D9A066",rock:"#B9B49C",rockDark:"#8E8B7C",wood:"#8C5A2B",gold:"#F2B632",bronze:"#B8722C",skin:"#F2C29B",white:"#FFFFFF",
+ temple:"#A9B8AE",templeDark:"#7E9187",water:"#4FA3A0",crypt:"#5E5A52",cryptDark:"#3F3C36",marble:"#EDE6D3",road:"#5E6B57"};
+const c=n=>COL[n]||n;
+
+/* Рідкість. reward — множник оплати відвідувачів за перегляд (налаштовується тут). */
+const RAR={
+ common:{o:1,name:"Звичайний",color:"#8CC04F",reward:1},
+ uncommon:{o:2,name:"Незвичайний",color:"#6FA83A",reward:1.15},
+ rare:{o:3,name:"Рідкісний",color:"#2F7D32",reward:1.3},
+ epic:{o:4,name:"Епічний",color:"#D2601A",reward:1.6},
+ legendary:{o:5,name:"Легендарний",color:"#B3261E",reward:2},
+ secret:{o:6,name:"Секретний",color:"#173A1D",reward:2.5},
+};
+const P=(s,p,col,o)=>Object.assign({s,p,c:col},o||{});
+/* val — скільки гривень платить один відвідувач за перегляд (до множника рідкості й бонусів). roll — чи випадає з розкопок. */
+const ART=[
+ {id:"stone",name:"Дивний камінь",r:"common",val:3,roll:1,desc:"Здається звичайним… але на ньому є вирізи.",parts:[P([1.6,1.3,1.4],[0,.65,0],"rockDark"),P([.9,.12,.1],[0,.75,-.72],"lime300",{m:"neon"}),P([.12,.8,.1],[-.2,.65,-.72],"lime300",{m:"neon"})]},
+ {id:"shard",name:"Черепок амфори",r:"common",val:4,roll:1,desc:"Хтось пив із неї воду тисячу років тому.",parts:[P([1.4,1.2,.3],[0,.6,0],"#C9772E"),P([1.42,.18,.32],[0,.9,0],"ink")]},
+ {id:"coin",name:"Стара монета",r:"common",val:5,roll:1,desc:"На ній — лисиця в короні.",parts:[P([1.4,1.4,.25],[0,.7,0],"gold",{cyl:1,m:"metal"})]},
+ {id:"tablet",name:"Глиняна табличка",r:"uncommon",val:8,roll:1,desc:"Покрита дивними символами.",parts:[P([1.3,1.8,.3],[0,.9,0],"#C9A27A"),P([.9,.1,.05],[0,1.3,-.17],"ink"),P([.9,.1,.05],[0,.95,-.17],"ink"),P([.6,.1,.05],[-.15,.6,-.17],"ink")]},
+ {id:"arrow",name:"Наконечник стріли",r:"uncommon",val:10,roll:1,desc:"Гострий, як погляд лисиці.",parts:[P([.3,1.4,.8],[0,1.2,0],"#5B5B55",{w:1}),P([.3,.6,.3],[0,.3,.25],"wood")]},
+ {id:"compass",name:"Бронзовий компас",r:"rare",val:16,roll:1,desc:"Стрілка показує не на північ, а на таємницю.",parts:[P([1.6,1.6,.5],[0,.8,0],"bronze",{m:"metal"}),P([1.2,1.2,.05],[0,.8,-.27],"paper"),P([.18,.55,.06],[0,1.05,-.3],"pin"),P([.18,.55,.06],[0,.55,-.3],"ink"),P([.4,.35,.3],[0,1.75,0],"bronze",{m:"metal"})]},
+ {id:"mask",name:"Дерев'яна маска",r:"rare",val:20,roll:1,desc:"Усміхається, коли ніхто не бачить.",parts:[P([1.4,1.8,.4],[0,.9,0],"wood"),P([.35,.3,.05],[-.32,1.2,-.22],"ink"),P([.35,.3,.05],[.32,1.2,-.22],"ink"),P([.7,.15,.05],[0,.55,-.22],"orange")]},
+ {id:"scarab",name:"Срібний скарабей",r:"rare",val:24,roll:1,desc:"Знайдений там, куди веде лише мотузка.",parts:[P([1.2,.6,1.6],[0,.4,0],"#C9CFD2",{m:"metal"}),P([.7,.4,.5],[0,.55,-.9],"#C9CFD2",{m:"metal"}),P([1.6,.1,.3],[0,.3,-.3],"ink"),P([1.6,.1,.3],[0,.3,.3],"ink"),P([.15,.15,.05],[-.2,.65,-1.16],"lime300",{m:"neon"}),P([.15,.15,.05],[.2,.65,-1.16],"lime300",{m:"neon"})]},
+ {id:"sundisc",name:"Сонячний диск",r:"epic",val:50,roll:1,desc:"Світиться навіть уночі.",parts:[P([1.6,1.6,.4],[0,1.2,0],"#E9A82A",{m:"metal"}),P([.4,.5,.3],[0,2.25,0],"tan"),P([.4,.5,.3],[0,.15,0],"tan"),P([.5,.4,.3],[-1.05,1.2,0],"tan"),P([.5,.4,.3],[1.05,1.2,0],"tan"),P([.7,.7,.05],[0,1.2,-.22],"orange",{m:"neon"})]},
+ {id:"crystal",name:"Кришталь пам'яті",r:"epic",val:60,roll:1,desc:"Якщо прислухатися — чути голоси предків.",parts:[P([.9,2,.9],[0,1.1,0],"#9FE3D8",{rot:[0,45,0],m:"glass"}),P([.5,.9,.5],[.6,.5,.1],"#9FE3D8",{rot:[0,20,15],m:"neon"})]},
+ {id:"mirror",name:"Дзеркало жриці",r:"epic",val:75,roll:0,desc:"Нагорода Затопленого храму. Відбиває світло, якого ще немає.",parts:[P([1.5,2,.2],[0,1.4,0],"#BFE3F5",{m:"glass"}),P([1.8,.3,.4],[0,.35,0],"gold",{m:"metal"}),P([.2,2.2,.3],[-.85,1.4,0],"gold",{m:"metal"}),P([.2,2.2,.3],[.85,1.4,0],"gold",{m:"metal"}),P([1.9,.25,.3],[0,2.5,0],"gold",{m:"metal"})]},
+ {id:"astrolabe",name:"Зоряна астролябія",r:"epic",val:80,roll:0,desc:"Нагорода обсерваторії. Пам'ятає небо тисячолітньої давнини.",parts:[P([1.8,1.8,.15],[0,1.3,0],"bronze",{cyl:1,m:"metal"}),P([1.3,1.3,.2],[0,1.3,-.05],"forestDeep",{cyl:1}),P([.12,1.4,.1],[0,1.3,-.2],"gold",{rot:[0,0,35],m:"metal"}),P([.6,.4,.6],[0,.2,0],"bronze",{m:"metal"})]},
+ {id:"crown",name:"Корона вітрів",r:"legendary",val:160,roll:1,desc:"Носив вождь, який умів говорити з вітром.",parts:[P([1.8,.6,1.8],[0,.3,0],"gold",{m:"metal"}),P([.4,.7,.4],[-.7,.95,-.7],"gold",{m:"metal"}),P([.4,.7,.4],[.7,.95,-.7],"gold",{m:"metal"}),P([.4,.7,.4],[-.7,.95,.7],"gold",{m:"metal"}),P([.4,.7,.4],[.7,.95,.7],"gold",{m:"metal"}),P([.35,.35,.1],[0,.35,-.92],"pin",{m:"neon"})]},
+ {id:"key",name:"Ключ предків",r:"legendary",val:180,roll:0,desc:"Нагорода Піщаного каньйону. Відчиняє місця, яких немає на мапі.",parts:[P([1.2,1.2,.3],[-.6,1.5,0],"gold",{m:"metal"}),P([.5,.5,.35],[-.6,1.5,0],"forestDeep"),P([1.6,.35,.3],[.75,1.5,0],"gold",{m:"metal"}),P([.25,.45,.3],[1.2,1.15,0],"gold",{m:"metal"}),P([.25,.65,.3],[.8,1.05,0],"gold",{m:"metal"}),P([.3,.9,.3],[0,.45,0],"rock")]},
+ {id:"shadowmask",name:"Маска Тіні",r:"legendary",val:220,roll:0,desc:"Нагорода Темної гробниці. Бачить у темряві краще за ліхтарик.",parts:[P([1.5,1.9,.4],[0,1.2,0],"#2B2A33"),P([.4,.25,.05],[-.33,1.45,-.22],"#9FE3D8",{m:"neon"}),P([.4,.25,.05],[.33,1.45,-.22],"#9FE3D8",{m:"neon"}),P([1.7,.2,.45],[0,2.05,0],"gold",{m:"metal"}),P([.5,.4,.5],[0,.2,0],"cryptDark")]},
+ {id:"heart",name:"Серце механізму",r:"secret",val:400,roll:0,desc:"Знаходять лише під час Землетрусу.",parts:[P([1.3,1.3,1.3],[0,1.2,0],"orange",{rot:[45,45,0],m:"neon"}),P([1.9,.2,.2],[0,1.2,0],"bronze",{m:"metal"}),P([.2,1.9,.2],[0,1.2,0],"bronze",{m:"metal"}),P([.2,.2,1.9],[0,1.2,0],"bronze",{m:"metal"})]},
+];
+const ARTBY={};ART.forEach(a=>ARTBY[a.id]=a);
+const viewReward=a=>Math.round(a.val*RAR[a.r].reward);
+
+/* Покращення бази (купуються за гроші). lab — кількість дослідницьких столів (макс. 3). */
+const UPG=[
+ {id:"tool",name:"Інструменти",max:5,levels:["Лупа","Лопатка","Металева кельма","Георадар","Сканер давнини"],price:[0,150,1200,9000,60000],effect:"Швидше копаєш і частіше знаходиш рідкісне",icon:'<path d="M14.7 6.3a4 4 0 0 0 5 5L12 19l-3-3z"/><path d="M3 21l5-5"/>'},
+ {id:"shelves",name:"Вітрини музею",max:8,price:[0,0,100,500,2500,10000,40000,150000],effect:"+1 вітрина. Більше експонатів — більше відвідувачів",icon:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18M12 4v16"/>'},
+ {id:"lab",name:"Дослідницькі столи",max:3,price:[0,1500,12000],effect:"Ще один стіл у лабораторії: досліджуй кілька реліквій паралельно",icon:'<path d="M9 3h6"/><path d="M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/>'},
+ {id:"backpack",name:"Рюкзак",max:5,cap:[5,10,20,40,80],price:[0,200,1500,8000,40000],effect:"Більше місця для нерозкритих реліквій",icon:'<path d="M5 9a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v11H5z"/><path d="M9 5V3h6v2M9 13h6"/>'},
+ {id:"bus",name:"Рекламні щити",max:4,price:[0,800,6000,30000],effect:"Автобуси привозять більше відвідувачів",icon:'<rect x="3" y="5" width="18" height="11" rx="2"/><path d="M8 16v4M16 16v4M7 9h10M7 12h6"/>'},
+];
+const UPGBY={};UPG.forEach(u=>UPGBY[u.id]=u);
+
+/* Магазин спорядження. Щоб додати товар — допиши об'єкт у цей список. type: tool (назавжди) | consumable (витрачається). */
+const ITEMS=[
+ {id:"flashlight",name:"Ліхтарик",price:300,type:"tool",cat:"Освітлення",desc:"Освітлює темні місця. Без нього в Темній гробниці нічого не видно, а малюнки на стінах не прочитати.",stats:["Клавіша F","Промінь 45 м"],icon:'<path d="M9 2h6v5l-1 2v12h-4V9L9 7z"/><path d="M12 13v2"/>'},
+ {id:"compassItem",name:"Компас",price:150,type:"tool",cat:"Навігація",desc:"Показує сторони світу й напрямок до поточної мети або твоєї позначки на карті.",stats:["Стрічка компаса в HUD","Мітка мети"],icon:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'},
+ {id:"metaldetector",name:"Металошукач",price:800,type:"tool",cat:"Пошук",desc:"Пищить поруч із закопаними реліквіями, яких не видно оком. У таких схованках частіше трапляється рідкісне. Чує порожнини за стінами.",stats:["Приховані розкопки","Радіус 30 м","+2 до удачі"],icon:'<path d="M4 20l7-7"/><path d="M11 13l2-2"/><ellipse cx="16.5" cy="7.5" rx="4.5" ry="3" transform="rotate(-45 16.5 7.5)"/>'},
+ {id:"treasuredetector",name:"Детектор скарбів",price:2500,type:"tool",cat:"Пошук",desc:"Відчуває запечатані скрині: показує відстань до найближчої та позначає всі скрині на карті.",stats:["Відстань у HUD","Скрині на карті"],icon:'<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="4"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/>'},
+ {id:"protools",name:"Набір археолога",price:1500,type:"tool",cat:"Розкопки",desc:"Щітки, кельма й сито. Копаєш на 40% швидше і частіше знаходиш цінне.",stats:["−40% часу копання","+1 до удачі"],icon:'<path d="M3 21l7-7M14 3l7 7-4 1-3-3-1-4z"/><path d="M8 13l3 3"/>'},
+ {id:"medkit",name:"Аптечка",price:60,type:"consumable",cat:"Виживання",desc:"Повністю відновлює здоров'я після пасток.",stats:["Клавіша Q","+5 сердець"],icon:'<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M9 6V4h6v2M12 10v6M9 13h6"/>'},
+ {id:"rope",name:"Мотузка з гаком",price:400,type:"tool",cat:"Спорядження",desc:"Дозволяє забратися на високі уступи в данжах, куди інакше не дістатися.",stats:["Таємні уступи"],icon:'<path d="M12 3v6"/><path d="M8 9a4 4 0 0 0 8 0"/><path d="M12 13c-4 2-4 6 0 8"/>'},
+ {id:"lockpicks",name:"Відмички",price:250,type:"consumable",cat:"Скрині",desc:"Дозволяють пропустити один етап замка епічної або легендарної скрині.",stats:["−1 етап замка"],icon:'<circle cx="7" cy="12" r="3"/><path d="M10 12h11M17 12v3M20 12v2"/>'},
+ {id:"decoder",name:"Декодер печаток",price:6000,type:"tool",cat:"Скрині",desc:"Спеціальне обладнання для легендарних скринь: без нього їхні печатки не зрушити з місця.",stats:["Відкриває легендарні скрині"],icon:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5h8v2M8 13h2M12 13h4M8 16h8"/>'},
+];
+const ITEMBY={};ITEMS.forEach(i=>ITEMBY[i.id]=i);
+
+/* Запечатані скрині: три рівні */
+const CHEST_TIERS={
+ rare:{name:"Рідкісна скриня",short:"Рідкісна",body:"wood",band:"greenMid",glow:"#8CC04F",stages:1,money:[120,300],luck:2,legendary:0,pill:"r"},
+ epic:{name:"Епічна скриня",short:"Епічна",body:"#6B3E1E",band:"orange",glow:"#F2A13A",stages:3,money:[600,1200],luck:4,legendary:2,pill:"e"},
+ legendary:{name:"Легендарна скриня",short:"Легендарна",body:"forestDeep",band:"gold",glow:"#FFD34D",stages:3,money:[3000,6000],luck:6,legendary:45,pill:"l"},
+};
+
+const RIDDLES=[
+ {q:"Що росте догори корінням?",a:["Бурулька","Морква","Дуб"]},
+ {q:"Що можна побачити із заплющеними очима?",a:["Сон","Небо","Мапу"]},
+ {q:"Без рук, без ніг, а ворота відчиняє?",a:["Вітер","Кіт","Ключ"]},
+ {q:"Що важче: кілограм каміння чи кілограм пір'я?",a:["Однаково","Каміння","Пір'я"]},
+ {q:"Що завжди йде, але ніколи не приходить?",a:["Завтра","Потяг","Дощ"]},
+ {q:"Чим більше з неї береш, тим більшою вона стає. Що це?",a:["Яма","Скриня","Ріка"]},
+ {q:"У батька троє синів: Січень, Лютий і… хто третій?",a:["Батько сам","Березень","Квітень"]},
+ {q:"Що має ключі, але не відчиняє жодних дверей?",a:["Піаніно","Сторож","Скриня"]},
+ {q:"Скільки місяців на рік мають 28 днів?",a:["Усі дванадцять","Один","Чотири"]},
+ {q:"Що зникає, щойно ти назвеш його?",a:["Тиша","Тінь","Луна"]},
+ {q:"Мапа показує північ угорі. Ти йдеш на схід і повертаєш праворуч. Куди тепер ідеш?",a:["На південь","На північ","На захід"]},
+ {q:"Дослідник пройшов 3 км на північ, 3 км на схід і 3 км на південь. Скільки він від старту?",a:["3 км","0 км","9 км"]},
+];
+const SYM=["▲","●","■","◆"];
+const FOXLINES=["Привіт! Я — твоя лисичка-дослідниця.","Ліс на півночі повен реліквій!","Каньйон на сході ховає таємницю…","Збирай не речі, а моменти.","Не відставай, я знаю коротку дорогу!","Автобус уже везе нових відвідувачів!","У храмі на заході грає світло…"];
+const EVENTS=[{id:"starnight",name:"Зоряна ніч",desc:"відвідувачі платять ×2"},{id:"quake",name:"Землетрус",desc:"нові тріщини в лісі й шанс знайти Серце механізму"},{id:"chestrain",name:"Дощ скринь",desc:"у лісі з'явилися запечатані скрині"},{id:"tourists",name:"Туристичний сезон",desc:"автобуси приїжджають удвічі частіше"}];
+const EVENT_EVERY=200, EVENT_LEN=70;
+const REBIRTH_COST=500000, REBIRTH_BONUS=.5;
+const RESEARCH_TIME=120; // секунд — рівно 2 хвилини
+const BUS_PERIOD=38;     // секунд між автобусами
+const MAX_HP=5;
+
+const fmt=n=>{n=Math.floor(n||0);if(n>=1e9)return(n/1e9).toFixed(1).replace(".",",")+" млрд";if(n>=1e6)return(n/1e6).toFixed(1).replace(".",",")+" млн";return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g," ")};
+const money=n=>fmt(n)+" грн";
+const rnd=(a,b)=>a+Math.random()*(b-a), rint=(a,b)=>Math.floor(rnd(a,b+1));
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function seeded(s){return()=>((s=(s*9301+49297)%233280)/233280)}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+
+/* ---- Генератори логічних загадок для скринь ---- */
+// Числова послідовність: відповідь вводиться на клавіатурі
+function genSequence(hard){
+  const k=rint(0,hard?4:2);let s,ans,rule;
+  if(k===0){const a=rint(1,9),d=rint(2,7);s=[a,a+d,a+2*d,a+3*d];ans=a+4*d;rule="додавай "+d}
+  else if(k===1){const a=rint(1,4),r=rint(2,3);s=[a,a*r,a*r*r,a*r*r*r];ans=a*r**4;rule="множ на "+r}
+  else if(k===2){const a=rint(2,9);s=[a,a+1,a+3,a+6];ans=a+10;rule="крок зростає на 1"}
+  else if(k===3){let x=rint(1,3),y=rint(2,4);s=[x,y,x+y,x+2*y];ans=2*x+3*y;rule="кожне — сума двох попередніх"}
+  else{const a=rint(2,6);s=[a*a,(a+1)*(a+1),(a+2)*(a+2),(a+3)*(a+3)];ans=(a+4)*(a+4);rule="квадрати чисел підряд"}
+  return {kind:"num",q:"Продовж ряд: "+s.join(", ")+", …",ans,hint:"Підказка: "+rule};
+}
+// Рівняння із символами: значення символів 1…9
+function genSymbolMath(){
+  const v=[rint(1,9),rint(1,9),rint(1,9)],[a,b,cc]=v,S3=["▲","●","■"];
+  const eqs=[`▲ + ▲ = ${2*a}`,`▲ + ● = ${a+b}`,`● + ■ = ${b+cc}`];
+  const ask=rint(0,1)?{t:"■ = ?",ans:cc}:{t:"▲ + ● + ■ = ?",ans:a+b+cc};
+  return {kind:"num",q:eqs.join("   ·   ")+"   →   "+ask.t,ans:ask.ans,vals:v,sym:S3};
+}
+function genRiddle(){const r=RIDDLES[rint(0,RIDDLES.length-1)];const opts=shuffle(r.a.slice());return {kind:"opt",q:r.q,opts,ans:opts.indexOf(r.a[0])}}
+
+/* ================= Рушій: сцена, світло, небо ================= */
+const canvas=document.getElementById("c");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(1.75,window.devicePixelRatio||1));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const lin=h=>new THREE.Color(h).convertSRGBToLinear();
+const SKY_DAY=lin("#BFE3F5"),SKY_NIGHT=lin("#1B2A44"),SKY_DARK=lin("#0E120F");
+scene.background=SKY_DAY.clone();
+const FOG_DAY=lin("#D7E8D6");
+scene.fog=new THREE.Fog(FOG_DAY.clone(),260,1250);
+const hemi=new THREE.HemisphereLight(0xffffff,0x7d8f62,.9);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff0d6,.9);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-95,right:95,top:95,bottom:-95,near:1,far:520});sun.shadow.bias=-.0005;sun.shadow.normalBias=.4;
+scene.add(sun);scene.add(sun.target);
+const camera=new THREE.PerspectiveCamera(60,1,.3,4200);
+const UNI={uTime:{value:0},uWind:{value:1}};
+
+/* ---- Шум і рельєф ---- */
+function hash2(x,z){const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s)}
+function vnoise(x,z){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz);
+  const a=hash2(ix,iz),b=hash2(ix+1,iz),cc=hash2(ix,iz+1),d=hash2(ix+1,iz+1);return (a+(b-a)*ux+(cc-a)*uz+(a-b-cc+d)*ux*uz)*2-1}
+function fbm(x,z){let s=0,a=.5,f=1;for(let i=0;i<4;i++){s+=vnoise(x*f,z*f)*a;f*=2.03;a*=.5}return s}
+
+/* Ключові місця світу */
+const LAY={
+ hub:{x:0,z:0}, base:{x:0,z:150}, stop:{x:26,z:110}, road:{z:100},
+ forest:{x1:-260,x2:260,z1:-360,z2:-120},
+ canyon:{x:410,z:0}, temple:{x:-430,z:-20}, crypt:{x:405,z:-290}, obs:{x:-330,z:235,h:16},
+ shop:{x:-22,z:-6},
+};
+/* Зони вирівнювання рельєфу: rect {x0,x1,z0,z1,h,pad,col} */
+const ZONES=[
+ {x0:-36,x1:36,z0:-36,z1:36,h:0,pad:40},
+ {x0:-56,x1:56,z0:108,z1:196,h:0,pad:40},
+ {x0:-720,x1:720,z0:91,z1:109,h:0,pad:34,col:"road"},
+ {x0:-5,x1:5,z0:-125,z1:-36,h:0,pad:14,col:"path"},
+ {x0:-5,x1:5,z0:36,z1:91,h:0,pad:14,col:"path"},
+ {x0:36,x1:300,z0:-5,z1:5,h:0,pad:16,col:"path"},
+ {x0:-385,x1:-36,z0:-5,z1:5,h:0,pad:16,col:"path"},
+ {x0:280,x1:550,z0:-100,z1:96,h:0,pad:34},
+ {x0:-480,x1:-370,z0:-80,z1:40,h:0,pad:36},
+ {x0:340,x1:475,z0:-350,z1:-225,h:0,pad:36},
+ {x0:255,x1:345,z0:-298,z1:-282,h:0,pad:14,col:"path"},
+ {x0:-56,x1:-300,z0:0,z1:0,h:0,pad:0,skip:1},
+];
+// доріжка до обсерваторії та плато на пагорбі задаються окремо
+const OBS_R=34,OBS_PAD=78;
+function zoneW(z,x,zz){const dx=Math.max(z.x0-x,0,x-z.x1),dz=Math.max(z.z0-zz,0,zz-z.z1),d=Math.hypot(dx,dz);return z.pad?1-smooth(0,z.pad,d):(d===0?1:0)}
+function terrainRaw(x,z){
+  let h=fbm(x*.0042+3.1,z*.0042-7.3)*22+fbm(x*.014+11,z*.014)*4.5;
+  const F=LAY.forest;const inF=smooth(30,0,Math.max(F.x1-x,0,x-F.x2,F.z1-z,0,z-F.z2));h*=1-.45*inF;
+  const r=Math.max(Math.abs(x),Math.abs(z)*1.05);h+=smooth(560,720,r)*95+smooth(640,760,r)*80;
+  return Math.max(h,-5);
+}
+function terrainH(x,z){
+  let h=terrainRaw(x,z);
+  const o=LAY.obs,dO=Math.hypot(x-o.x,z-o.z),wO=1-smooth(OBS_R,OBS_R+OBS_PAD,dO);h=h*(1-wO)+o.h*wO;
+  for(const zn of ZONES){if(zn.skip)continue;const w=zoneW(zn,x,z);if(w>0)h=h*(1-w)+zn.h*w}
+  return h;
+}
+function pathColorW(x,z){let road=0,path=0;for(const zn of ZONES){if(!zn.col)continue;const dx=Math.max(zn.x0-x,0,x-zn.x1),dz=Math.max(zn.z0-z,0,z-zn.z1),d=Math.hypot(dx,dz);const w=1-smooth(0,2.5,d);if(zn.col==="road")road=Math.max(road,w);else path=Math.max(path,w)}
+  // доріжка до обсерваторії (крива)
+  return {road,path};
+}
+/* Швидка сітка висот для фізики */
+const HG={size:1700,step:4,n:0,data:null};
+function buildHeightGrid(){HG.n=Math.floor(HG.size/HG.step)+1;HG.data=new Float32Array(HG.n*HG.n);const h0=-HG.size/2;
+  for(let j=0;j<HG.n;j++)for(let i=0;i<HG.n;i++)HG.data[j*HG.n+i]=terrainH(h0+i*HG.step,h0+j*HG.step)}
+function groundH(x,z){const h0=-HG.size/2,fx=(x-h0)/HG.step,fz=(z-h0)/HG.step;let i=Math.floor(fx),j=Math.floor(fz);
+  if(i<0||j<0||i>=HG.n-1||j>=HG.n-1)return 0;const tx=fx-i,tz=fz-j,n=HG.n,d=HG.data;
+  return (d[j*n+i]*(1-tx)+d[j*n+i+1]*tx)*(1-tz)+(d[(j+1)*n+i]*(1-tx)+d[(j+1)*n+i+1]*tx)*tz}
+
+/* ---- Процедурні текстури ---- */
+const TEX={};
+function canvasTex(name,w,h,draw){const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");draw(x,w,h);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=4;TEX[name]=t;return t}
+function speckle(x,w,h,n,cols,a){for(let i=0;i<n;i++){x.globalAlpha=a*(.4+Math.random()*.6);x.fillStyle=cols[i%cols.length];const s=1+Math.random()*2.5;x.fillRect(Math.random()*w,Math.random()*h,s,s)}x.globalAlpha=1}
+function makeTextures(){
+  canvasTex("plaster",256,256,(x,w,h)=>{x.fillStyle="#F3EEDC";x.fillRect(0,0,w,h);speckle(x,w,h,1400,["#E2DCC4","#FFFDF2","#D8D1B6"],.6);x.strokeStyle="rgba(150,140,110,.18)";x.lineWidth=2;for(let y=64;y<h;y+=64){x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke()}});
+  canvasTex("planks",256,256,(x,w,h)=>{const cols=["#9A6537","#8C5A2B","#A26E3E","#83552B"];for(let i=0;i<8;i++){x.fillStyle=cols[i%4];x.fillRect(i*32,0,32,h);x.strokeStyle="rgba(50,25,8,.45)";x.lineWidth=2;x.strokeRect(i*32+1,0,31,h);x.strokeStyle="rgba(60,30,10,.25)";x.lineWidth=1;for(let k=0;k<5;k++){x.beginPath();const ox=i*32+4+Math.random()*24;x.moveTo(ox,0);x.bezierCurveTo(ox+4,h*.3,ox-4,h*.6,ox+2,h);x.stroke()}x.fillStyle="rgba(40,20,5,.6)";x.beginPath();x.arc(i*32+16,(i*57)%h,2.5,0,7);x.fill()}});
+  const blocks=(name,base,mortar,var1,rows,cols)=>canvasTex(name,256,256,(x,w,h)=>{x.fillStyle=mortar;x.fillRect(0,0,w,h);const bh=h/rows,bw=w/cols;for(let r=0;r<rows;r++)for(let k=-1;k<cols;k++){const ox=(r%2?bw/2:0)+k*bw;x.fillStyle=var1[(r*7+k*3+99)%var1.length];x.fillRect(ox+2,r*bh+2,bw-4,bh-4);x.fillStyle="rgba(255,255,255,.12)";x.fillRect(ox+2,r*bh+2,bw-4,3)}speckle(x,w,h,900,["#000","#fff"],.08)});
+  blocks("stone","#B9B49C","#8E8B7C",["#BDB8A0","#B2AD95","#C4BFA8","#ADA88F"],4,2);
+  blocks("templeStone","#A9B8AE","#6E8178",["#A9B8AE","#9FAFA4","#B3C1B7","#98A99E"],4,2);
+  blocks("cryptStone","#5E5A52","#2F2C27",["#5E5A52","#55514A","#67625A","#4C4943"],5,3);
+  blocks("marble","#EDE6D3","#C8C0A8",["#EDE6D3","#F4EEDD","#E4DCC6","#EAE2CC"],3,2);
+  canvasTex("sandstone",256,256,(x,w,h)=>{const cols=["#D9A066","#CF9358","#E0AB72","#C98A55","#D59B60"];let y=0;while(y<h){const t=8+Math.random()*26;x.fillStyle=cols[Math.floor(Math.random()*cols.length)];x.fillRect(0,y,w,t);y+=t}speckle(x,w,h,1500,["#8C5A2B","#F4C27F"],.15)});
+  canvasTex("roof",256,256,(x,w,h)=>{x.fillStyle="#173F1F";x.fillRect(0,0,w,h);for(let r=0;r<8;r++)for(let k=-1;k<8;k++){const ox=k*32+(r%2?16:0),oy=r*32;x.fillStyle=["#1E5A2B","#22652F","#1B5227"][(r+k+9)%3];x.beginPath();x.moveTo(ox+1,oy);x.lineTo(ox+31,oy);x.lineTo(ox+31,oy+22);x.quadraticCurveTo(ox+16,oy+34,ox+1,oy+22);x.closePath();x.fill();x.fillStyle="rgba(255,255,255,.08)";x.fillRect(ox+3,oy+2,26,3)}});
+  canvasTex("roofOrange",256,256,(x,w,h)=>{x.fillStyle="#8C3D0E";x.fillRect(0,0,w,h);for(let r=0;r<8;r++)for(let k=-1;k<8;k++){const ox=k*32+(r%2?16:0),oy=r*32;x.fillStyle=["#D2601A","#C65922","#DA6E2A"][(r+k+9)%3];x.beginPath();x.moveTo(ox+1,oy);x.lineTo(ox+31,oy);x.lineTo(ox+31,oy+22);x.quadraticCurveTo(ox+16,oy+34,ox+1,oy+22);x.closePath();x.fill()}});
+  canvasTex("floor",256,256,(x,w,h)=>{for(let r=0;r<4;r++)for(let k=0;k<4;k++){x.fillStyle=(r+k)%2?"#E9DFC3":"#D9C9A0";x.fillRect(k*64,r*64,64,64);x.strokeStyle="rgba(120,100,60,.35)";x.strokeRect(k*64+.5,r*64+.5,63,63)}speckle(x,w,h,600,["#8C5A2B","#fff"],.1)});
+  canvasTex("labFloor",256,256,(x,w,h)=>{for(let r=0;r<4;r++)for(let k=0;k<4;k++){x.fillStyle=(r+k)%2?"#E3EFC4":"#EEF4DC";x.fillRect(k*64,r*64,64,64);x.strokeStyle="rgba(30,90,43,.25)";x.strokeRect(k*64+.5,r*64+.5,63,63)}});
+  canvasTex("asphalt",256,256,(x,w,h)=>{x.fillStyle="#5E6B57";x.fillRect(0,0,w,h);speckle(x,w,h,3000,["#4E5A48","#6F7C67","#86917C"],.5)});
+  canvasTex("bark",128,256,(x,w,h)=>{x.fillStyle="#8C5A2B";x.fillRect(0,0,w,h);x.strokeStyle="rgba(40,20,5,.4)";x.lineWidth=3;for(let i=0;i<10;i++){const ox=Math.random()*w;x.beginPath();x.moveTo(ox,0);x.lineTo(ox+(Math.random()-.5)*12,h);x.stroke()}});
+  canvasTex("stripes",128,128,(x,w,h)=>{for(let i=0;i<4;i++){x.fillStyle=i%2?"#FBF8EC":"#D2601A";x.fillRect(i*32,0,32,h)}});
+  canvasTex("water",256,256,(x,w,h)=>{x.fillStyle="#4FA3A0";x.fillRect(0,0,w,h);x.strokeStyle="rgba(255,255,255,.35)";x.lineWidth=2;for(let i=0;i<26;i++){const y=Math.random()*h,ox=Math.random()*w;x.beginPath();x.moveTo(ox,y);x.quadraticCurveTo(ox+10,y-4,ox+22,y);x.stroke()}});
+}
+
+/* ---- Матеріали ---- */
+const matCache={};
+function mat(col,kind,op){
+  const k=col+"|"+(kind||"")+"|"+(op||1);if(matCache[k])return matCache[k];
+  const color=lin(c(col));const o={color};
+  if(kind==="neon"){o.emissive=color;o.emissiveIntensity=.9}
+  if(kind==="glass"){o.transparent=true;o.opacity=.55}
+  if(kind==="metal"){o.emissive=color.clone().multiplyScalar(.14)}
+  if(kind&&kind.startsWith("tex:")){o.map=TEX[kind.slice(4)];o.color=col==="white"?new THREE.Color(1,1,1):color}
+  if(op&&op<1){o.transparent=true;o.opacity=op;o.depthWrite=false}
+  const m=new THREE.MeshLambertMaterial(o);if(kind==="sway")addSway(m,.22);
+  return matCache[k]=m;
+}
+// легке коливання від вітру (листя, кущі, трава)
+function addSway(m,amp,instanced){
+  m.onBeforeCompile=sh=>{sh.uniforms.uTime=UNI.uTime;sh.uniforms.uWind=UNI.uWind;
+    sh.vertexShader="uniform float uTime;uniform float uWind;\n"+sh.vertexShader.replace("#include <begin_vertex>",`#include <begin_vertex>
+      vec3 wp=(modelMatrix*${instanced?"instanceMatrix*":""}vec4(transformed,1.)).xyz;
+      float k=${instanced?"clamp(position.y,0.,2.)":"1."};
+      transformed.x+=sin(uTime*1.7+wp.x*.11+wp.z*.07)*${amp.toFixed(2)}*k*uWind;
+      transformed.z+=cos(uTime*1.3+wp.z*.09)*${(amp*.6).toFixed(2)}*k*uWind;`)};
+  m.customProgramCacheKey=()=>"sway"+amp+(instanced?"i":"");return m;
+}
+
+const boxGeo=new THREE.BoxGeometry(1,1,1);
+const cylGeo=new THREE.CylinderGeometry(.5,.5,1,22);cylGeo.rotateX(Math.PI/2);
+const vcylGeo=new THREE.CylinderGeometry(.5,.5,1,16);
+const sphGeo=new THREE.SphereGeometry(.5,20,14);
+const wedgeGeo=(()=>{const g=new THREE.BufferGeometry();const v=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5],[-.5,-.5,.5],[-.5,.5,.5],[.5,.5,.5]];
+  const f=[[0,1,2],[0,2,3],[3,2,5],[3,5,4],[0,5,1],[0,4,5],[0,3,4],[1,5,2]];const pos=[],uv=[];f.forEach(t=>t.forEach(i=>{pos.push(...v[i]);uv.push(v[i][0]+.5,v[i][1]+.5)}));
+  g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g.computeVertexNormals();return g})();
+// куб із UV, що масштабуються за розміром (для текстур, які тайляться)
+const tgeoCache={};
+function tgeo(sx,sy,sz,tile){const k=[sx,sy,sz,tile].map(v=>v.toFixed(2)).join("|");if(tgeoCache[k])return tgeoCache[k];
+  const g=new THREE.BoxGeometry(sx,sy,sz),uv=g.attributes.uv;const dims=[[sz,sy],[sz,sy],[sx,sz],[sx,sz],[sx,sy],[sx,sy]];
+  for(let f=0;f<6;f++)for(let i=0;i<4;i++){const k2=f*4+i;uv.setXY(k2,uv.getX(k2)*dims[f][0]/tile,uv.getY(k2)*dims[f][1]/tile)}
+  return tgeoCache[k]=g}
+
+const colliders=[]; // {box:THREE.Box3, on:true, tag}
+const DEG=Math.PI/180;
+function addCollider(m,tag){m.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m);const cl={box:b,on:true,tag:tag||"",mesh:m};colliders.push(cl);m.userData.col=cl;return cl}
+// box(parent,[sx,sy,sz],[x,y,z],color,{rot,collide,m,op,shape,shadow,tex,tile,dyn})
+function box(parent,s,p,col,o={}){
+  let g,m;
+  if(o.tex){g=tgeo(s[0],s[1],s[2],o.tile||4);m=new THREE.Mesh(g,mat(col||"white","tex:"+o.tex))}
+  else{g=o.shape==="wedge"?wedgeGeo:o.shape==="cyl"?cylGeo:o.shape==="vcyl"?vcylGeo:o.shape==="ball"?sphGeo:boxGeo;m=new THREE.Mesh(g,o.material||mat(col,o.m,o.op));m.scale.set(s[0],s[1],s[2])}
+  m.position.set(p[0],p[1],p[2]);
+  if(o.rot)m.rotation.set(o.rot[0]*DEG,o.rot[1]*DEG,o.rot[2]*DEG);
+  m.castShadow=o.shadow!==false;m.receiveShadow=true;
+  if(o.dyn)m.userData.dyn=true;
+  parent.add(m);
+  if(o.collide)addCollider(m,o.tag);
+  return m;
+}
+function assemble(parts,scale=1){const g=new THREE.Group();g.userData.noMerge=true;
+  for(const q of parts){box(g,q.s.map(v=>v*scale),q.p.map(v=>v*scale),q.c,{rot:q.rot,m:q.m,shape:q.w?"wedge":q.cyl?"cyl":undefined})}return g}
+function artifactModel(id,scale=1){return assemble(ARTBY[id].parts,scale)}
+
+/* ---- Персонажі ---- */
+const FOX=[
+ P([1,.45,1.15],[-.6,.22,-.05],"boot"),P([1,.45,1.15],[.6,.22,-.05],"boot"),P([.85,1.1,.85],[-.6,.95,0],"foxDark"),P([.85,1.1,.85],[.6,.95,0],"foxDark"),
+ P([2.4,2,1.6],[0,2.5,0],"fox"),P([1,1.5,.1],[0,2.45,-.82],"paper"),P([.65,2.02,1.64],[-.88,2.5,0],"hat"),P([.65,2.02,1.64],[.88,2.5,0],"hat"),
+ P([2.44,.28,1.66],[0,1.75,0],"boot"),P([.4,.4,.1],[0,1.75,-.86],"tan"),
+ P([2.6,.4,1.8],[0,3.55,0],"forest"),P([1,.8,.2],[0,3,-.88],"forest",{w:1,rot:[180,0,0]}),
+ P([.6,1.8,.6],[-1.55,2.55,0],"fox"),P([.66,.45,.66],[-1.55,1.5,0],"paper"),P([.6,1.8,.6],[1.55,2.55,0],"fox"),P([.66,.45,.66],[1.55,1.5,0],"paper"),
+ P([1,.9,1.2],[0,1.9,1.3],"fox"),P([.95,1,.9],[0,2.5,2.2],"fox"),P([.9,.9,.9],[0,3.2,2.7],"paper"),
+ P([3.4,2.6,2.6],[0,4.95,0],"fox"),P([1,.9,.1],[-1.2,4.3,-1.31],"paper"),P([1,.9,.1],[1.2,4.3,-1.31],"paper"),P([1.2,.85,.7],[0,4.4,-1.6],"paper"),P([.5,.35,.3],[0,4.75,-1.95],"ink"),
+ P([.5,.6,.1],[-.75,5.3,-1.31],"ink"),P([.5,.6,.1],[.75,5.3,-1.31],"ink"),P([.18,.18,.05],[-.85,5.45,-1.37],"white"),P([.18,.18,.05],[.65,5.45,-1.37],"white"),
+ P([.35,.2,.05],[-1.25,4.85,-1.33],"#F2A07B"),P([.35,.2,.05],[1.25,4.85,-1.33],"#F2A07B"),
+ P([.9,1.3,.6],[-1.35,6.75,0],"fox"),P([.92,.38,.62],[-1.35,7.25,0],"earTip"),P([.45,.75,.05],[-1.35,6.6,-.31],"paper"),
+ P([.9,1.3,.6],[1.35,6.75,0],"fox"),P([.92,.38,.62],[1.35,7.25,0],"earTip"),P([.45,.75,.05],[1.35,6.6,-.31],"paper"),
+ P([4,.25,3.4],[0,6.38,0],"hat"),P([1.7,.8,1.6],[0,6.9,0],"hat"),P([1.72,.25,1.62],[0,6.62,0],"forest"),
+];
+function foxModel(scale=1){const g=assemble(FOX,scale);g.userData.head=g.children[19];return g}
+// Блокова людина: гравець (дослідник) і відвідувачі
+function personModel(o={}){
+  const g=new THREE.Group();g.userData.noMerge=true;const add=(s,p,col,par=g)=>box(par,s,p,col,{dyn:true});
+  const shirt=o.shirt||"#E9C27F",pants=o.pants||"#5B6B3A",skin=o.skin||"skin";
+  const legL=new THREE.Group(),legR=new THREE.Group(),armL=new THREE.Group(),armR=new THREE.Group(),body=new THREE.Group();
+  g.add(body);legL.position.set(-.55,2,0);legR.position.set(.55,2,0);armL.position.set(-1.55,4.1,0);armR.position.set(1.55,4.1,0);
+  [legL,legR].forEach(l=>{add([1,1.7,1.1],[0,-.85,0],pants,l);add([1.1,.45,1.25],[0,-1.8,-.05],o.shoes||"boot",l);g.add(l)});
+  [armL,armR].forEach(a=>{add([.8,1.9,.9],[0,-.9,0],shirt,a);add([.7,.5,.7],[0,-2,0],skin,a);body.add(a)});
+  add([2.4,2.2,1.3],[0,3.1,0],shirt,body);add([2.42,.4,1.32],[0,2.15,0],o.belt||"boot",body);
+  if(o.explorer){add([2.42,.5,.1],[0,3.9,-.66],"forest",body);add([1.8,2,1],[0,3.2,1.1],"orange",body);add([1.4,.6,1.02],[0,2.5,1.15],"orangeDeep",body)}
+  else if(o.bag)add([1.4,1.6,.8],[0,3.2,1],o.bag,body);
+  const head=new THREE.Group();head.position.set(0,4.2,0);body.add(head);
+  add([2,2,2],[0,1,0],skin,head);add([.3,.4,.05],[-.45,1.1,-1.01],"ink",head);add([.3,.4,.05],[.45,1.1,-1.01],"ink",head);add([.6,.15,.05],[0,.55,-1.01],"#B04E12",head);
+  if(o.explorer){add([3,.25,3],[0,2.1,0],"hat",head);add([2.1,.8,2.1],[0,2.6,0],"hat",head);add([2.12,.28,2.12],[0,2.3,0],"forest",head)}
+  else if(o.hat==="cap"){add([2.1,.6,2.1],[0,2.2,0],o.hatCol||"orange",head);add([1.6,.2,1],[0,1.95,-1.4],o.hatCol||"orange",head)}
+  else if(o.hat==="sun"){add([2.8,.2,2.8],[0,2.05,0],o.hatCol||"tan",head);add([1.9,.6,1.9],[0,2.4,0],o.hatCol||"tan",head)}
+  else add([2.1,.5,2.1],[0,2.2,0],o.hair||"#5A3A22",head);
+  g.userData={legL,legR,armL,armR,body,head};return g;
+}
+
+/* ---- Написи на гранях (канвас) ---- */
+function textTexture(text,color,bg,w,h,font){
+  const k=48,cv=document.createElement("canvas");cv.width=Math.max(16,Math.round(Math.min(w*k,1024)));cv.height=Math.max(16,Math.round(Math.min(h*k,512)));
+  const x=cv.getContext("2d");if(bg){x.fillStyle=bg;x.fillRect(0,0,cv.width,cv.height)}
+  const fam=font||'800 FS "Unbounded","Arial Black",sans-serif';let fs=cv.height*.62;const setF=()=>x.font=fam.replace("FS",fs+"px");setF();
+  while(x.measureText(text).width>cv.width*.86&&fs>6){fs*=.92;setF()}
+  x.fillStyle=color;x.textAlign="center";x.textBaseline="middle";x.fillText(text,cv.width/2,cv.height/2+fs*.04);
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;
+}
+// face: front(-Z) back(+Z) left(-X) right(+X) top(+Y)
+function sign(mesh,face,text,color,bg){
+  const s=mesh.geometry===boxGeo?mesh.scale:(()=>{mesh.geometry.computeBoundingBox();const b=mesh.geometry.boundingBox;return new THREE.Vector3(b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z)})();
+  let w,h,rot=[0,0,0],n;
+  if(face==="front"){w=s.x;h=s.y;rot=[0,Math.PI,0];n=[0,0,-.5]}else if(face==="back"){w=s.x;h=s.y;n=[0,0,.5]}
+  else if(face==="left"){w=s.z;h=s.y;rot=[0,-Math.PI/2,0];n=[-.5,0,0]}else if(face==="right"){w=s.z;h=s.y;rot=[0,Math.PI/2,0];n=[.5,0,0]}
+  else{w=s.x;h=s.z;rot=[-Math.PI/2,0,0];n=[0,.5,0]}
+  const tex=textTexture(text,c(color),bg?c(bg):null,w,h);
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:tex,transparent:!bg}));
+  const g=new THREE.Group();g.userData.noMerge=true;g.position.copy(mesh.position);g.rotation.copy(mesh.rotation);mesh.parent.add(g);
+  pl.rotation.set(...rot);pl.scale.set(w,h,1);
+  pl.position.set(n[0]*s.x+(n[0]?Math.sign(n[0])*.04:0),n[1]*s.y+(n[1]?.04:0),n[2]*s.z+(n[2]?Math.sign(n[2])*.04:0));
+  g.add(pl);pl.userData.setText=(t,col)=>{pl.material.map.dispose();pl.material.map=textTexture(t,c(col||color),bg?c(bg):null,w,h);pl.material.needsUpdate=true};
+  pl.userData.group=g;return pl;
+}
+
+/* ---- Небо й гори (панорама 360°) ---- */
+function buildSky(){
+  const g=new THREE.SphereGeometry(3600,32,16),cols=[],p=g.attributes.position,top=lin("#9FD3EE"),hor=lin("#EAF3E3");
+  for(let i=0;i<p.count;i++){const y=p.getY(i)/3600;const t=smooth(-.05,.55,y);const col=hor.clone().lerp(top,t);cols.push(col.r,col.g,col.b)}
+  g.setAttribute("color",new THREE.Float32BufferAttribute(cols,3));
+  const m=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false,depthWrite:false});
+  const sky=new THREE.Mesh(g,m);sky.renderOrder=-10;scene.add(sky);return sky;
+}
+// Три шари «паперових» гір навколо світу — як аплікація з брендбуку
+function buildMountains(){
+  const layers=[
+    {r:3000,base:-40,amp:620,seed:9,cols:["#9FB7C2","#B7CAD1"],snow:"#F5F1E0",snowAt:.62,freq:5},
+    {r:2350,base:-40,amp:470,seed:4,cols:["#6E8F7A","#88A58F"],snow:"#F5F1E0",snowAt:.7,freq:7},
+    {r:1700,base:-30,amp:330,seed:2,cols:["#2F7D32","#3E8A3F"],snow:null,freq:9},
+    {r:1150,base:-30,amp:200,seed:7,cols:["#1E5A2B","#256733"],snow:null,freq:12},
+  ];
+  const grp=new THREE.Group();
+  for(const L of layers){
+    const N=360,pos=[],col=[],idx=[];const cA=lin(L.cols[0]),cB=lin(L.cols[1]),cS=L.snow?lin(L.snow):null;
+    const ridge=a=>{const x=Math.cos(a),z=Math.sin(a);let h=0,f=L.freq,amp=1;for(let o=0;o<4;o++){h+=Math.abs(vnoise(x*f+L.seed*13,z*f-L.seed*7))*amp;f*=2.1;amp*=.48}return clamp(h*.85,0,1)};
+    for(let i=0;i<=N;i++){const a=i/N*Math.PI*2,h=ridge(a),x=Math.cos(a)*L.r,z=Math.sin(a)*L.r,top=L.base+40+h*L.amp;
+      // три точки по вертикалі: низ, середина, верх (для кольору снігу)
+      const ys=[L.base,L.base+(top-L.base)*.55,top];
+      ys.forEach((y,k)=>{pos.push(x,y,z);let cc=(k===2&&cS&&h>L.snowAt)?cS:(i%2?cA:cB);if(k===0)cc=cA.clone().multiplyScalar(.85);col.push(cc.r,cc.g,cc.b)})}
+    for(let i=0;i<N;i++){const a=i*3,b=(i+1)*3;for(let k=0;k<2;k++){idx.push(a+k,b+k,a+k+1,b+k,b+k+1,a+k+1)}}
+    const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setAttribute("color",new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
+    const m=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:false});
+    const mesh=new THREE.Mesh(g,m);mesh.userData.noMerge=true;mesh.userData.mountain=true;grp.add(mesh);
+  }
+  grp.userData.noMerge=true;scene.add(grp);return grp;
+}
+function buildTerrain(){
+  const S=HG.size,seg=340,g=new THREE.PlaneGeometry(S,S,seg,seg);g.rotateX(-Math.PI/2);
+  const p=g.attributes.position,col=[];
+  const cLow=lin("#B9D98C"),cMid=lin("#A8CB6E"),cHigh=lin("#7FB24E"),cPeak=lin("#5E9840"),cRoad=lin("#5E6B57"),cPath=lin("#E2C18A"),cForest=lin("#97C063"),cDirt=lin("#C9B07A"),tmp=new THREE.Color();
+  const F=LAY.forest;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=terrainH(x,z);p.setY(i,h);
+    const t=clamp((h+5)/45,0,1);tmp.copy(cLow).lerp(cMid,smooth(0,.3,t)).lerp(cHigh,smooth(.3,.7,t)).lerp(cPeak,smooth(.7,1,t));
+    const n=fbm(x*.02,z*.02);tmp.lerp(cForest,clamp(n*.6+.2,0,.5)*(x>F.x1&&x<F.x2&&z>F.z1&&z<F.z2?1:.3));
+    if(n>.38)tmp.lerp(cDirt,(n-.38)*1.2);
+    const pw=pathColorW(x,z);if(pw.path>0)tmp.lerp(cPath,pw.path);if(pw.road>0)tmp.lerp(cRoad,pw.road);
+    col.push(tmp.r,tmp.g,tmp.b)}
+  g.setAttribute("color",new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true}));m.receiveShadow=true;m.userData.noMerge=true;scene.add(m);return m;
+}
+
+/* ---- Об'єднання статичних мешів (менше викликів малювання → вищий FPS) ---- */
+function mergeStatic(root){
+  const buckets=new Map(),victims=[];
+  root.updateMatrixWorld(true);
+  const walk=(o,skip)=>{if(o.userData&&o.userData.noMerge)skip=true;
+    if(o.isMesh&&!skip&&!o.isInstancedMesh&&!o.userData.dyn&&o.visible&&o.material&&o.material.isMeshLambertMaterial&&!o.material.transparent){
+      const key=o.material.uuid+"|"+(o.castShadow?1:0);if(!buckets.has(key))buckets.set(key,{m:o.material,cast:o.castShadow,list:[]});buckets.get(key).list.push(o);victims.push(o)}
+    for(const ch of o.children.slice())walk(ch,skip)};
+  walk(root,false);
+  let merged=0;
+  for(const b of buckets.values()){
+    let total=0;const parts=[];
+    for(const o of b.list){let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);parts.push(g);total+=g.attributes.position.count}
+    const pos=new Float32Array(total*3),nor=new Float32Array(total*3),uv=new Float32Array(total*2);let off=0;
+    for(const g of parts){pos.set(g.attributes.position.array,off*3);nor.set(g.attributes.normal.array,off*3);if(g.attributes.uv)uv.set(g.attributes.uv.array,off*2);off+=g.attributes.position.count;g.dispose()}
+    const mg=new THREE.BufferGeometry();mg.setAttribute("position",new THREE.BufferAttribute(pos,3));mg.setAttribute("normal",new THREE.BufferAttribute(nor,3));mg.setAttribute("uv",new THREE.BufferAttribute(uv,2));
+    mg.computeBoundingSphere();const mesh=new THREE.Mesh(mg,b.m);mesh.castShadow=b.cast;mesh.receiveShadow=true;mesh.userData.noMerge=true;scene.add(mesh);merged++;
+  }
+  for(const o of victims)o.parent&&o.parent.remove(o);
+  return {meshes:victims.length,merged};
+}
+
+/* ================= Світ ================= */
+const W={roofs:[],lights:[],anim:[],dark:[]};
+const CANYON_RESPAWN=new THREE.Vector3(324,0,0);
+const labels=[];
+const labelRoot=document.getElementById("labels");
+function worldLabel(text,pos,{say=false,max=70,cls=""}={}){const el=document.createElement("div");el.className="wl"+(say?" say":"")+(cls?" "+cls:"");el.textContent=text;labelRoot.appendChild(el);const L={el,pos:pos.clone(),max};labels.push(L);return L}
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+// стіна за межами прямокутника
+function wall(par,x0,x1,z0,z1,y0,h,o={}){return box(par,[x1-x0,h,z1-z0],[(x0+x1)/2,y0+h/2,(z0+z1)/2],o.col||"white",{tex:o.tex||"plaster",tile:o.tile||6,collide:o.collide!==false,shadow:o.shadow,dyn:o.dyn})}
+function gableRoof(par,x0,x1,z0,z1,y,h,tex,alongX){
+  const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)/2;
+  if(alongX){box(par,[w+2,h,d/2+1],[cx,y+h/2,cz-d/4-.5],"white",{shape:"wedge",material:mat("white","tex:"+tex)});box(par,[w+2,h,d/2+1],[cx,y+h/2,cz+d/4+.5],"white",{shape:"wedge",rot:[0,180,0],material:mat("white","tex:"+tex)})}
+  else{box(par,[d+2,h,w/2+1],[cx-w/4-.5,y+h/2,cz],"white",{shape:"wedge",rot:[0,90,0],material:mat("white","tex:"+tex)});box(par,[d+2,h,w/2+1],[cx+w/4+.5,y+h/2,cz],"white",{shape:"wedge",rot:[0,-90,0],material:mat("white","tex:"+tex)})}
+}
+function roofGroup(x0,x1,z0,z1,top){const g=new THREE.Group();g.userData.noMerge=true;scene.add(g);W.roofs.push({g,x0,x1,z0,z1,top});return g}
+function pointLight(x,y,z,col,int,dist){const l=new THREE.PointLight(col,int,dist,1.6);l.position.set(x,y,z);scene.add(l);W.lights.push(l);return l}
+
+function tree(par,x,z,R,big){
+  const y=groundH(x,z),h=(big?8:6)+Math.floor(R()*5),s=(big?8:6)+Math.floor(R()*4),leaf=R()<.5?"greenMid":"forest";
+  box(par,[2,h,2],[x,y+h/2,z],"white",{tex:"bark",tile:4,collide:true});
+  box(par,[s,s*.75,s],[x,y+h+s*.3,z],leaf,{m:"sway"});
+  box(par,[s*.6,s*.5,s*.6],[x+.6,y+h+s*.9,z+.4],"leafDark",{m:"sway"});
+  if(R()<.4)box(par,[s*.5,s*.4,s*.5],[x-s*.35,y+h+s*.1,z-s*.3],leaf,{m:"sway"});
+}
+function pine(par,x,z,R){const y=groundH(x,z),h=5+R()*3;box(par,[1.6,h,1.6],[x,y+h/2,z],"white",{tex:"bark",tile:4,collide:true});
+  for(let i=0;i<3;i++){const s=7-i*2;box(par,[s,3,s],[x,y+h+i*2.6,z],i%2?"forest":"#25683A",{m:"sway"})}}
+function signpost(par,x,z,text,yaw){
+  const g=new THREE.Group();g.position.set(x,groundH(x,z),z);g.rotation.y=yaw*DEG;par.add(g);
+  box(g,[.8,7,.8],[0,3.5,0],"white",{tex:"planks",tile:2});
+  const b=box(g,[10,2.6,.5],[0,6,0],"cream");sign(b,"front",text,"forest");sign(b,"back",text,"forest");
+}
+function stoneTablet(par,x,y,z,yaw,text,tex){
+  const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=yaw*DEG;par.add(g);
+  const t=box(g,[5,6,1.2],[0,0,0],"white",{tex:tex||"stone",tile:3});sign(t,"front",text,"ink");sign(t,"back",text,"ink");
+  addCollider(t);return g;
+}
+function lantern(par,x,y,z){box(par,[.3,2.4,.3],[x,y+1.2,z],"ink");box(par,[1,1.2,1],[x,y+2.9,z],"tan",{m:"neon"});box(par,[1.3,.3,1.3],[x,y+3.6,z],"forest")}
+function crate(par,x,y,z,s=3,col){box(par,[s,s,s],[x,y+s/2,z],col||"white",{tex:"planks",tile:s,collide:true})}
+function barrel(par,x,y,z){box(par,[2.4,3,2.4],[x,y+1.5,z],"white",{shape:"vcyl",material:mat("white","tex:planks"),collide:true});box(par,[2.5,.25,2.5],[x,y+.6,z],"ink",{shape:"vcyl"});box(par,[2.5,.25,2.5],[x,y+2.4,z],"ink",{shape:"vcyl"})}
+function plant(par,x,y,z){box(par,[1.6,1.4,1.6],[x,y+.7,z],"orangeDeep",{collide:true});box(par,[1.8,2,1.8],[x,y+2.2,z],"greenMid",{m:"sway"});box(par,[.6,.6,.6],[x+.5,y+3.2,z],"orange")}
+function owl(par,x,y,z,yaw){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=yaw*DEG;par.add(g);
+  box(g,[3,2,3],[0,1,0],"white",{tex:"templeStone",tile:3});box(g,[2.4,3.2,2],[0,3.6,0],"templeDark");box(g,[2.6,2.2,2.2],[0,6.2,0],"templeDark");
+  box(g,[.7,.7,.1],[-.6,6.4,-1.12],"gold",{m:"neon"});box(g,[.7,.7,.1],[.6,6.4,-1.12],"gold",{m:"neon"});box(g,[.5,.5,.4],[0,5.8,-1.2],"tan",{shape:"wedge",rot:[90,0,0]});
+  box(g,[.6,.8,.6],[-.9,7.6,0],"templeDark");box(g,[.6,.8,.6],[.9,7.6,0],"templeDark");g.updateMatrixWorld(true);addCollider(g.children[0]);return g}
+
+function buildWorld(){
+  buildTerrain();W.sky=buildSky();W.mountains=buildMountains();
+  /* ---------- Хаб ---------- */
+  box(scene,[70,.4,70],[0,.2,0],"sand",{shadow:false});
+  for(let i=-1;i<=1;i+=2){box(scene,[71,.6,1.5],[0,.3,35*i],"white",{tex:"stone",tile:2,shadow:false});box(scene,[1.5,.6,71],[35*i,.3,0],"white",{tex:"stone",tile:2,shadow:false})}
+  box(scene,[10,1,10],[0,.5,12],"orange");
+  // фонтан
+  box(scene,[12,1.6,12],[14,.8,-14],"white",{shape:"vcyl",material:mat("white","tex:stone"),collide:true});
+  box(scene,[10.4,.2,10.4],[14,1.62,-14],"water",{shape:"vcyl",m:"glass"});
+  box(scene,[2,5,2],[14,3,-14],"white",{tex:"marble",tile:2});box(scene,[4,.6,4],[14,5.6,-14],"white",{shape:"vcyl",material:mat("white","tex:marble")});
+  W.fountain=box(scene,[1.2,2.4,1.2],[14,7,-14],"#BFE3F5",{m:"glass",dyn:true});
+  box(scene,[1.2,16,1.2],[-15,8,-26],"white",{tex:"planks",tile:2,collide:true});box(scene,[1.2,16,1.2],[15,8,-26],"white",{tex:"planks",tile:2,collide:true});
+  const board=box(scene,[34,10,1],[0,13,-26],"forest");sign(board,"back","RELIC QUEST","cream");sign(board,"front","RELIC QUEST","cream");
+  const sub=box(scene,[24,2.6,.3],[0,9.6,-25.4],"orange");sign(sub,"back","ТАЄМНИЦІ АРТЕФАКТІВ","paper");
+  signpost(scene,-6,-40,"ЛІС · ПІВНІЧ",0);signpost(scene,40,-9,"КАНЬЙОН · СХІД",90);signpost(scene,-8,42,"МУЗЕЙ · ПІВДЕНЬ",180);signpost(scene,-40,9,"ХРАМ · ЗАХІД",-90);
+  for(let i=0;i<12;i++)box(scene,[1.2,.35,1.2],[14+i*4,.3,16+Math.sin(i*.6)*4],"forest",{shadow:false});
+  box(scene,[1.2,4,1.2],[64,2,16],"pin");box(scene,[3.4,3.4,3.4],[64,5,16],"pin",{shape:"ball"});
+  const guide=foxModel(1.2);guide.position.set(10,.4,2);guide.rotation.y=200*DEG;scene.add(guide);W.guide=guide;
+  W.guideLabel=worldLabel(FOXLINES[0],V3(10,10.5,2),{say:true,max:60});
+  // лави
+  for(const [x,z,r] of [[-20,22,0],[20,22,0],[22,-26,90]]){const g=new THREE.Group();g.position.set(x,.4,z);g.rotation.y=r*DEG;scene.add(g);box(g,[6,.4,1.6],[0,1.4,0],"white",{tex:"planks",tile:3});box(g,[6,1.4,.3],[0,2.4,.7],"white",{tex:"planks",tile:3});box(g,[.4,1.2,1.4],[-2.6,.6,0],"ink");box(g,[.4,1.2,1.4],[2.6,.6,0],"ink");g.updateMatrixWorld(true);addCollider(g.children[0])}
+
+  /* ---------- Крамниця «Компас» ---------- */
+  {const x0=-34,x1=-14,z0=-16,z1=0,y=.4,top=10;
+   box(scene,[x1-x0,.4,z1-z0],[(x0+x1)/2,y+.2,(z0+z1)/2],"white",{tex:"planks",tile:4,shadow:false});
+   wall(scene,x0,x0+1.2,z0,z1,y,top);wall(scene,x0,x1,z0,z0+1.2,y,top);wall(scene,x0,x1,z1-1.2,z1,y,top);
+   wall(scene,x1-1.2,x1,z0,z0+4,y,top);wall(scene,x1-1.2,x1,z1-4,z1,y,top);box(scene,[1.2,2.5,z1-z0],[x1-.6,y+top-1.25,(z0+z1)/2],"white",{tex:"plaster",tile:6});
+   const rg=roofGroup(x0,x1,z0,z1,top+y);gableRoof(rg,x0,x1,z0,z1,y+top,5,"roofOrange",false);
+   box(scene,[3,2.2,18],[x1+1.6,y+top-1.4,(z0+z1)/2],"white",{tex:"stripes",tile:4,rot:[0,0,-18]});
+   box(scene,[2.5,3.4,10],[x1-3.5,y+1.7,(z0+z1)/2],"white",{tex:"planks",tile:3,collide:true});box(scene,[3,.4,10.6],[x1-3.5,y+3.6,(z0+z1)/2],"forest");
+   for(let i=0;i<3;i++){box(scene,[1.6,.3,12],[x0+2.5,y+2+i*2.4,(z0+z1)/2],"white",{tex:"planks",tile:3});
+     for(let k=0;k<5;k++)box(scene,[1,1,1],[x0+2.5,y+2.7+i*2.4,z0+4+k*2],["orange","tan","bronze","greenMid","pin"][(i+k)%5],{m:k%3?undefined:"metal"})}
+   const sg=box(scene,[16,2.6,.4],[(x0+x1)/2+1,y+top+1.6,z1+.4],"forest");sign(sg,"back","КРАМНИЦЯ «КОМПАС»","cream");
+   const sg2=box(scene,[.4,2.6,14],[x1+.4,y+top-4.2,(z0+z1)/2],"cream");sign(sg2,"right","СПОРЯДЖЕННЯ","forest");
+   const merchant=personModel({shirt:"#2F7D32",pants:"#6B3E1E",hat:"sun",hatCol:"tan",bag:null});merchant.position.set(x1-6.5,y,(z0+z1)/2);merchant.rotation.y=-Math.PI/2;scene.add(merchant);W.merchant=merchant;
+   lantern(scene,x1+1,y,z0-1);lantern(scene,x1+1,y,z1+1);
+   W.shopCounter=V3(x1-1,2,(z0+z1)/2);}
+
+  /* ---------- Дорога й автобусна зупинка ---------- */
+  box(scene,[1440,.12,16],[0,.06,100],"white",{tex:"asphalt",tile:10,shadow:false});
+  for(let x=-700;x<=700;x+=12)box(scene,[5,.14,.6],[x,.1,100],"cream",{shadow:false});
+  for(let i=-3;i<=3;i++)box(scene,[1.6,.15,14],[i*2.6,.11,100],"paper",{shadow:false});
+  box(scene,[1440,.4,1.2],[0,.2,108.6],"white",{tex:"stone",tile:2,shadow:false});
+  {const s=LAY.stop;
+   box(scene,[34,.5,6],[s.x,.25,s.z+1],"white",{tex:"stone",tile:3,shadow:false});
+   box(scene,[16,7,.4],[s.x+4,4,s.z+3.6],"#BFE3F5",{m:"glass"});
+   for(const dx of[-4,12])box(scene,[.5,7.5,.5],[s.x+dx,4,s.z+3.6],"forest",{collide:true});
+   box(scene,[18,.6,6],[s.x+4,7.9,s.z+1.6],"forest");box(scene,[18.2,.3,6.2],[s.x+4,7.5,s.z+1.6],"orange");
+   box(scene,[10,.5,1.8],[s.x+4,1.9,s.z+2.4],"white",{tex:"planks",tile:3,collide:true});box(scene,[10,1.6,.3],[s.x+4,3,s.z+3.2],"white",{tex:"planks",tile:3});
+   box(scene,[.4,9,.4],[s.x-10,4.5,s.z-1.8],"ink",{collide:true});const rs=box(scene,[3,3,.3],[s.x-10,9.6,s.z-1.8],"orange");sign(rs,"front","BUS","paper");sign(rs,"back","BUS","paper");
+   const tb=box(scene,[5,3.4,.3],[s.x+4,4.8,s.z+3.35],"cream");sign(tb,"front","ЗУПИНКА «МУЗЕЙ»","forest");
+   W.busBoard=worldLabel("Автобус через 0 с",V3(s.x+4,10.6,s.z+1.5),{max:70});}
+  // рекламні щити (покращення «Рекламні щити»)
+  W.billboards=[];for(let i=0;i<3;i++){const g=new THREE.Group();g.userData.noMerge=true;const x=-160-i*150,z=86;g.position.set(x,groundH(x,z),z);scene.add(g);
+    box(g,[.6,9,.6],[-5,4.5,0],"ink",{dyn:true});box(g,[.6,9,.6],[5,4.5,0],"ink",{dyn:true});const b=box(g,[14,6,.5],[0,10,0],"orange",{dyn:true});sign(b,"back",["МУЗЕЙ ЗНАХІДОК →","ЛИСИЧКА ЧЕКАЄ!","РЕЛІКВІЇ · 2 КМ"][i],"paper");
+    g.visible=false;W.billboards.push(g)}
+
+  /* ---------- База гравця ---------- */
+  const B=LAY.base;
+  box(scene,[128,1,79],[0,.5,153.5],"lime200",{collide:true,shadow:false});
+  box(scene,[130,.8,81],[0,.4,153.5],"forest",{shadow:false});
+  // паркан з проходом на півночі
+  const fenceSeg=(x0,z0,x1,z1)=>{const L=Math.hypot(x1-x0,z1-z0),n=Math.max(1,Math.round(L/5));for(let i=0;i<=n;i++){const t=i/n;box(scene,[.6,3.4,.6],[x0+(x1-x0)*t,2.7,z0+(z1-z0)*t],"white",{tex:"planks",tile:2})}
+    const ax=Math.abs(x1-x0)>Math.abs(z1-z0);box(scene,ax?[L,.5,.35]:[.35,.5,L],[(x0+x1)/2,3.6,(z0+z1)/2],"white",{tex:"planks",tile:3});box(scene,ax?[L,.5,.35]:[.35,.5,L],[(x0+x1)/2,2.1,(z0+z1)/2],"white",{tex:"planks",tile:3});
+    box(scene,ax?[L,3,.6]:[.6,3,L],[(x0+x1)/2,2.5,(z0+z1)/2],"forest",{collide:true}).visible=false};
+  fenceSeg(-63,114.6,-9.8,114.6);fenceSeg(9.8,114.6,63,114.6);fenceSeg(-63,114.6,-63,192);fenceSeg(63,114.6,63,192);fenceSeg(-63,192,63,192);
+  box(scene,[1.2,7,1.2],[-9,4.5,114.6],"orange",{collide:true});box(scene,[1.2,7,1.2],[9,4.5,114.6],"orange",{collide:true});
+  const arch=box(scene,[19.2,2.2,1],[0,8.6,114.6],"forest");sign(arch,"front","МУЗЕЙ ЗНАХІДОК","cream");sign(arch,"back","ТВОЯ БАЗА","cream");
+  // доріжка до музею
+  box(scene,[10,.12,15],[0,1.06,120.5],"white",{tex:"stone",tile:2,shadow:false});
+  /* Музей-павільйон */
+  {const x0=-24,x1=24,z0=128,z1=158,y=1,top=12;
+   box(scene,[x1-x0,.2,z1-z0],[0,y+.1,(z0+z1)/2],"white",{tex:"floor",tile:6,shadow:false});
+   wall(scene,x0,x1,z1-2,z1,y,top);wall(scene,x0,x0+2,z0,z1,y,top);wall(scene,x1-2,x1,z0,z1,y,top);
+   wall(scene,x0,-7,z0,z0+2,y,top);wall(scene,7,x1,z0,z0+2,y,top);box(scene,[14,2.6,2],[0,y+top-1.3,z0+1],"white",{tex:"plaster",tile:6});
+   box(scene,[x1-x0+1,1,z1-z0+1],[0,y+top+.5,(z0+z1)/2],"forest");
+   for(const x of[-9,9]){box(scene,[2.4,top,2.4],[x,y+top/2,z0-1],"white",{shape:"vcyl",material:mat("white","tex:marble"),collide:true});box(scene,[3.2,.8,3.2],[x,y+.4,z0-1],"white",{tex:"marble",tile:2});box(scene,[3.2,.8,3.2],[x,y+top-.4,z0-1],"white",{tex:"marble",tile:2})}
+   box(scene,[22,1.2,4],[0,y+top+.2,z0-1.2],"white",{tex:"marble",tile:3});
+   const ms=box(scene,[18,2.4,.4],[0,y+top-3.5,z0-.25],"orange");sign(ms,"front","МУЗЕЙ ЗНАХІДОК","paper");
+   for(const zz of[136,146])for(const s of[-1,1]){box(scene,[.3,4,5],[s*(24.2),y+6,zz],"#BFE3F5",{m:"glass"});box(scene,[.5,.5,5.6],[s*24.3,y+3.8,zz],"forest");box(scene,[.5,.5,5.6],[s*24.3,y+8.2,zz],"forest");box(scene,[.9,.9,5],[s*24.9,y+3.2,zz],"orangeDeep");box(scene,[.9,.6,4.6],[s*24.9,y+3.9,zz],"greenMid",{m:"sway"})}
+   const rg=roofGroup(x0,x1,z0-3,z1,y+top+1);gableRoof(rg,x0-1,x1+1,z0-3,z1+1,y+top+1,7,"roof",true);
+   box(rg,[x1-x0+4,.6,1],[0,y+top+8.1,(z0+z1)/2-1],"forestDeep");
+   box(scene,[14,.08,8],[0,y+.24,133],"orange",{shadow:false});box(scene,[6,.08,22],[0,y+.24,143],"orange",{shadow:false});
+   for(const [x,z] of[[-20,132],[20,132],[-20,153],[20,153]])plant(scene,x,y+.2,z);
+   lantern(scene,-12,y,z0-3);lantern(scene,12,y,z0-3);
+   pointLight(0,y+10,143,0xffe2b0,.9,46);
+   const banners=[["#D2601A",-23.2],["#1E5A2B",23.2]];for(const [cc,x] of banners){box(scene,[.2,6,3],[x*.995,y+7,150],cc)}
+   W.pedestals=[];let k=0;
+   for(let row=0;row<2;row++)for(let col=0;col<4;col++){
+     const x=-15+col*10,z=138+row*9;
+     const base=box(scene,[4,3,4],[x,y+1.5,z],"white",{tex:"marble",tile:2,collide:true,dyn:true});const topM=box(scene,[4.6,.5,4.6],[x,y+3.25,z],"forest",{collide:true,dyn:true});
+     box(scene,[1.6,.5,.2],[x,y+2.2,z-2.05],"gold",{m:"metal"});
+     const holder=new THREE.Group();holder.position.set(x,y+3.5,z);holder.userData.noMerge=true;scene.add(holder);
+     W.pedestals.push({base,top:topM,holder,pos:V3(x,y+3.5,z),view:V3(x,0,row?142.5:133.5),label:worldLabel("Порожня вітрина",V3(x,y+8.6,z),{max:46}),model:null,cur:null,i:k++,row});
+   }}
+  /* Лабораторія */
+  {const x0=30,x1=60,z0=124,z1=162,y=1,top=11;
+   box(scene,[x1-x0,.2,z1-z0],[(x0+x1)/2,y+.1,(z0+z1)/2],"white",{tex:"labFloor",tile:8,shadow:false});
+   wall(scene,x1-2,x1,z0,z1,y,top);wall(scene,x0,x1,z0,z0+2,y,top);wall(scene,x0,x1,z1-2,z1,y,top);
+   wall(scene,x0,x0+2,z0,138,y,top);wall(scene,x0,x0+2,146,z1,y,top);box(scene,[2,3,8],[x0+1,y+top-1.5,142],"white",{tex:"plaster",tile:6});
+   box(scene,[2.2,.5,9],[x0+1,y+top-3.2,142],"forest");
+   for(const zz of[132,152]){box(scene,[.3,4,6],[x0-.15,y+6,zz],"#BFE3F5",{m:"glass"});box(scene,[.5,.5,6.6],[x0-.3,y+3.8,zz],"forest");box(scene,[.5,.5,6.6],[x0-.3,y+8.2,zz],"forest")}
+   const ls=box(scene,[.4,2.4,12],[x0-.25,y+top+.2,142],"forest");sign(ls,"left","ЛАБОРАТОРІЯ","cream");
+   box(scene,[x1-x0+1,1,z1-z0+1],[(x0+x1)/2,y+top+.5,(z0+z1)/2],"forest");
+   const rg=roofGroup(x0,x1,z0,z1,y+top+1);gableRoof(rg,x0-1,x1+1,z0-1,z1+1,y+top+1,6,"roof",false);
+   box(rg,[3,6,3],[x1-6,y+top+5,z0+6],"white",{tex:"stone",tile:2});box(rg,[3.4,.6,3.4],[x1-6,y+top+8.2,z0+6],"forestDeep");
+   box(rg,[.3,10,.3],[x0+8,y+top+8,z1-6],"ink");box(rg,[3,.3,.3],[x0+8,y+top+12,z1-6],"ink");box(rg,[1,1,1],[x0+8,y+top+13,z1-6],"pin",{m:"neon"});
+   // шафи та обладнання вздовж стін
+   for(let i=0;i<4;i++){const zz=z0+6+i*8.5;box(scene,[2,8,6],[x1-3.2,y+4,zz],"white",{tex:"planks",tile:3,collide:true});
+     for(let s=0;s<3;s++){box(scene,[2.2,.3,6.2],[x1-3.2,y+2+s*2.4,zz],"forest");for(let j=0;j<3;j++)box(scene,[.8,1,.8],[x1-3.6,y+2.7+s*2.4,zz-2+j*2],["#9FE3D8","#C5DE8E","#F4C27F","#D2601A"][(i+s+j)%4],{m:"glass"})}}
+   const board=box(scene,[.3,4,10],[x1-2.15,y+6.5,z0+5],"forestDeep");sign(board,"left","ДОСЛІДЖЕННЯ","lime300");
+   W.tables=[];
+   for(let i=0;i<3;i++){const tz=z0+10+i*11,tx=45;
+     const tb=box(scene,[9,.6,4.4],[tx,y+3.2,tz],"white",{tex:"planks",tile:3,collide:true});
+     for(const [dx,dz] of[[-4,-1.8],[4,-1.8],[-4,1.8],[4,1.8]])box(scene,[.5,3,.5],[tx+dx,y+1.5,tz+dz],"ink");
+     box(scene,[1,2.2,1],[tx-3.4,y+4.6,tz+1.2],"ink");box(scene,[.5,1.2,.5],[tx-3.4,y+5.6,tz+.7],"ink",{rot:[30,0,0]});box(scene,[1.4,.4,1.4],[tx-3.4,y+3.7,tz+1.2],"forest");
+     const scr=box(scene,[3.4,2.2,.3],[tx+2.6,y+5,tz+2],"forestDeep",{dyn:true});
+     const ring=new THREE.Group();ring.position.set(tx,y+7.2,tz);ring.userData.noMerge=true;scene.add(ring);
+     for(let a=0;a<8;a++){box(ring,[1.4,.3,.4],[Math.cos(a/8*6.28)*2.2,0,Math.sin(a/8*6.28)*2.2],"bronze",{m:"metal",rot:[0,-a/8*360,0],dyn:true})}
+     box(scene,[.25,4,.25],[tx,y+9.3,tz],"ink");
+     const beam=box(scene,[.3,3.6,.3],[tx,y+5.2,tz],"lime300",{m:"neon",dyn:true,shadow:false});beam.visible=false;
+     const tarp=box(scene,[9.4,1.4,4.8],[tx,y+4.2,tz],"tan",{dyn:true});
+     const relic=new THREE.Group();relic.position.set(tx,y+3.5,tz);relic.userData.noMerge=true;scene.add(relic);
+     W.tables.push({i,pos:V3(tx,y+3.5,tz),ring,beam,tarp,relic,scr,label:worldLabel("",V3(tx,y+11,tz),{max:42,cls:"prog"})});
+   }
+   pointLight(45,y+9,140,0xe8fff0,.9,40);
+   W.labDoor=V3(x0-3,1,142);}
+  // намет, вогнище, ящики, прапор
+  {const y=1;const tx=-44,tz=170,w=10,h=7,d=9;
+   box(scene,[w,h,d/2],[tx,y+h/2,tz-d/4],"white",{shape:"wedge",material:mat("orange")});box(scene,[w,h,d/2],[tx,y+h/2,tz+d/4],"white",{shape:"wedge",rot:[0,180,0],material:mat("orangeHover")});
+   box(scene,[2.4,3.6,.2],[tx,y+1.8,tz-d/2+.6],"ink");box(scene,[w*.9,h*.6,d*.8],[tx,y+h*.3,tz],"forest",{collide:true}).visible=false;
+   box(scene,[5,.3,5],[-36,y+.15,150],"rockDark",{shape:"vcyl"});for(let a=0;a<4;a++)box(scene,[3.2,.6,.6],[-36,y+.5,150],"wood",{rot:[0,a*45,0]});
+   W.fire=box(scene,[1.6,2.4,1.6],[-36,y+1.6,150],"orange",{m:"neon",dyn:true,shadow:false});W.fireLight=pointLight(-36,y+4,150,0xffa040,.8,26);
+   crate(scene,-52,y,176);crate(scene,-48.5,y,177,2.4);crate(scene,-51.5,y+3,176.3,2.2);barrel(scene,-55,y,168);barrel(scene,-55,y,163);
+   box(scene,[.5,18,.5],[-26,y+9,118],"ink");W.flag=box(scene,[6,3.6,.2],[-23,y+16,118],"orange",{dyn:true});const fs=W.flag;
+   const lab2=box(scene,[16,4,.6],[-30,y+5,117],"cream");sign(lab2,"front","ТВОЯ БАЗА","forest");box(scene,[.8,6,.8],[-37,y+3,117],"white",{tex:"planks",tile:2});box(scene,[.8,6,.8],[-23,y+3,117],"white",{tex:"planks",tile:2});
+   for(let i=0;i<5;i++){box(scene,[6,.6,3],[-48+i*0,y+.3,128+i*7],"orangeDeep");for(let k=0;k<4;k++)box(scene,[.8,1.2,.8],[-50+k*1.4,y+1.2,128+i*7],["orange","paper","pin","tan"][(i+k)%4])}}
+  W.home=V3(0,1,124);
+
+  /* ---------- Ліс і окремі гаї ---------- */
+  const R=seeded(42),F=LAY.forest;W.trees=[];
+  for(let i=0;i<150;i++){const x=F.x1+Math.floor(R()*(F.x2-F.x1)),z=F.z1+Math.floor(R()*(F.z2-F.z1));
+    if(Math.abs(x)<8&&z>-170)continue;if(Math.hypot(x+180,z+300)<10)continue;if(x>240&&z>-300&&z<-280)continue;
+    (R()<.3?pine:tree)(scene,x,z,R,R()<.3);W.trees.push([x,z])}
+  // гаї навколо (природні скупчення)
+  const groves=[[-150,40,10],[160,60,8],[-260,140,12],[230,200,9],[-120,250,10],[120,-60,7],[-200,-60,9],[300,-180,8],[-520,180,9],[520,230,8],[-560,-200,10],[580,-80,7]];
+  for(const [gx,gz,n] of groves)for(let i=0;i<n;i++){const x=gx+(R()-.5)*60,z=gz+(R()-.5)*60;if(zoneBlocked(x,z,8))continue;(R()<.45?pine:tree)(scene,x,z,R,R()<.2);W.trees.push([x,z])}
+  for(let i=0;i<40;i++){const x=(R()-.5)*1100,z=(R()-.5)*1000;if(zoneBlocked(x,z,8))continue;const s=3+Math.floor(R()*6),y=groundH(x,z);box(scene,[s,s*.7,s*.9],[x,y+s*.25,z],"white",{tex:"stone",tile:3,collide:true,rot:[0,R()*90,0]})}
+  const gate=box(scene,[16,3,.5],[0,6,-114],"forest");sign(gate,"front","ШЕПІТНИЙ ЛІС","cream");sign(gate,"back","ШЕПІТНИЙ ЛІС","cream");
+  box(scene,[1,7.5,1],[-8,3.75,-114],"white",{tex:"bark",tile:2,collide:true});box(scene,[1,7.5,1],[8,3.75,-114],"white",{tex:"bark",tile:2,collide:true});
+  stoneTablet(scene,-180,groundH(-180,-300)+3,-300,20,"1 — "+SYM[S.solution[0]]);
+
+  buildCanyon();buildTemple();buildCrypt();buildObservatory();
+  // межі світу
+  for(const [s,p] of [[[1500,300,2],[0,150,-700]],[[1500,300,2],[0,150,700]],[[2,300,1500],[-700,150,0]],[[2,300,1500],[700,150,0]]]){const m=box(scene,s,p,"forest",{collide:true});m.visible=false}
+  buildVegetation();buildCritters();
+  scene.updateMatrixWorld(true);
+}
+function zoneBlocked(x,z,pad){
+  for(const zn of ZONES){if(zn.skip)continue;if(x>zn.x0-pad&&x<zn.x1+pad&&z>zn.z0-pad&&z<zn.z1+pad)return true}
+  if(Math.hypot(x-LAY.obs.x,z-LAY.obs.z)<OBS_R+pad+10)return true;
+  if(Math.max(Math.abs(x),Math.abs(z))>600)return true;
+  return false;
+}
+
+/* ---------- Піщаний каньйон (як і раніше, з текстурами) ---------- */
+function buildCanyon(){
+  box(scene,[220,1,26],[410,.5,0],"white",{tex:"sandstone",tile:8,shadow:false,collide:false});
+  box(scene,[220,30,6],[410,15,-13],"white",{tex:"sandstone",tile:10,collide:true});box(scene,[220,30,6],[410,15,13],"white",{tex:"sandstone",tile:10,collide:true});
+  const R2=seeded(7);
+  for(let i=0;i<14;i++){const w=18+Math.floor(R2()*16),h=16+Math.floor(R2()*20),z=R2()<.5?-28-Math.floor(R2()*42):28+Math.floor(R2()*42);
+    box(scene,[w,h,w],[320+Math.floor(R2()*200),h/2,z],"white",{tex:"sandstone",tile:10,collide:true})}
+  const cg=box(scene,[1,4,20],[300,27,0],"forest");sign(cg,"left","ПІЩАНИЙ КАНЬЙОН","cream");
+  const warn=box(scene,[12,4,.4],[326,6,-9.8],"cream");sign(warn,"back","ОБЕРЕЖНО: ПАСТКИ! СТУПАЙ НА ◆","stamp");
+  W.traps=[];const safe=[2,1,3,2];
+  for(let col=1;col<=4;col++)for(let lane=1;lane<=3;lane++){
+    const x=342.5+(col-1)*15,z=(lane-2)*6.6,ok=safe[col-1]===lane;
+    const pl=box(scene,[14.6,.3,6.4],[x,1.15,z],"white",{tex:ok?"stone":"sandstone",tile:3,shadow:false});
+    if(ok)sign(pl,"top","◆   ◆   ◆","forest");else W.traps.push({x0:x-7.3,x1:x+7.3,z0:z-3.2,z1:z+3.2,y:2.5,respawn:CANYON_RESPAWN,msg:"Обережно, плита хитається! Ступай лише на плити з візерунком ◆"});
+  }
+  stoneTablet(scene,430,6,9.4,0,"2 — "+SYM[S.solution[1]]);
+  const X=472;
+  box(scene,[4,30,6],[X,15,-7],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[4,30,6],[X,15,7],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[4,20,8],[X,20,0],"white",{tex:"sandstone",tile:8,collide:true});
+  W.door=box(scene,[3,9,8],[X,5.5,0],"white",{tex:"stone",tile:3,collide:true,dyn:true});sign(W.door,"left","?","tan");
+  W.tiles=[];for(let i=0;i<3;i++){const t=box(scene,[1.2,4,4],[X-2.5,12.6,(i-1)*5],"rock",{dyn:true});W.tiles.push({mesh:t,sign:sign(t,"left","?","ink"),pos:V3(X-3,12.6,(i-1)*5)})}
+  const nums=box(scene,[.3,1.6,14],[X-2.1,15.6,0],"cream");sign(nums,"left","1       2       3","forest");
+  W.socket=box(scene,[1.4,3,3],[X-2.6,4,-7.5],"ink",{dyn:true});W.socketPos=V3(X-3,4,-7.5);
+  box(scene,[34,1,20],[X+19,.6,0],"white",{tex:"stone",tile:4,collide:true,shadow:false});
+  box(scene,[2,30,26],[X+37,15,0],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[36,2,26],[X+19,15,0],"white",{tex:"sandstone",tile:8});
+  for(const z of[-9,9])for(const dx of[8,26])box(scene,[.8,1.6,.8],[X+dx,8,z],"orange",{m:"neon"});
+  pointLight(X+17,8,0,0xffc27f,1,34);
+  box(scene,[5,3,3.5],[X+30,2.6,0],"gold",{m:"metal",collide:true});box(scene,[5.2,1,3.7],[X+30,4.4,0],"forest");box(scene,[1,1,.3],[X+30,3,-1.85],"pin",{m:"neon"});
+  W.ancient=V3(X+30,3,0);W.roomMinX=X+2;
+  box(scene,[22,18,22],[285,9,44],"white",{tex:"sandstone",tile:8,collide:true});
+  for(let i=1;i<=6;i++)box(scene,[5,i*3,5],[271,i*1.5,30+i*4.2],"white",{tex:"sandstone",tile:3,collide:true});
+  stoneTablet(scene,285,21,44,0,"3 — "+SYM[S.solution[2]],"sandstone");
+}
+
+/* ---------- Затоплений храм (захід) ---------- */
+const TEMPLE={x0:-462,x1:-398,z0:-52,z1:12,y:1.5,gx:-448,gz:-34,cell:8};
+function buildTemple(){
+  const T=TEMPLE,y=T.y,st={tex:"templeStone",tile:4};
+  // підлога з басейнами (басейни — пастка)
+  const fl=(x0,x1,z0,z1)=>box(scene,[x1-x0,y,z1-z0],[(x0+x1)/2,y/2,(z0+z1)/2],"white",{...st,collide:true,shadow:false});
+  fl(-462,-458,-52,12);fl(-452,-410,-52,12);fl(-404,-398,-52,12);fl(-458,-452,-52,-32);fl(-458,-452,4,12);fl(-410,-404,-52,-32);fl(-410,-404,4,12);
+  for(const px of[-455,-407]){box(scene,[6,.3,36],[px,.35,-14],"white",{material:mat("white","tex:water"),shadow:false});box(scene,[6,.2,36],[px,.05,-14],"templeDark",{shadow:false})}
+  W.pools=[{x0:-458,x1:-452,z0:-32,z1:4},{x0:-410,x1:-404,z0:-32,z1:4}];
+  W.pools.forEach(p=>W.traps.push({x0:p.x0,x1:p.x1,z0:p.z0,z1:p.z1,y:1.2,respawn:V3(-392,0,-20),msg:"Бульк! Вода в храмі крижана й глибока. Обходь басейни!"}));
+  // сходи на схід
+  for(let i=0;i<3;i++)box(scene,[2,.5*(i+1),20],[-396+(2-i)*2-2,.25*(i+1),-20],"white",{...st,collide:true,shadow:false});
+  const h=14,w=(x0,x1,z0,z1,hh)=>wall(scene,x0,x1,z0,z1,y,hh||h,{tex:"templeStone",tile:4});
+  w(-462,-460,-52,12);w(-462,-398,-52,-50);w(-400,-398,-52,-26);w(-400,-398,-14,12);box(scene,[2,4,12],[-399,y+h-2,-20],"white",{...st});
+  // південна стіна з таємною панеллю
+  w(-462,-442,10,12);w(-434,-398,10,12);box(scene,[8,6,2],[-438,y+h-3,11],"white",{...st});
+  W.secretPanel=box(scene,[8,h-6,2],[-438,y+(h-6)/2,11],"white",{tex:"templeStone",tile:4,collide:true,dyn:true});
+  W.looseBrick=box(scene,[1.6,1,.4],[-438,y+4,9.8],"#8FA79A",{dyn:true});
+  // таємна кімната
+  wall(scene,-450,-448,12,30,0,12,{tex:"templeStone"});wall(scene,-428,-426,12,30,0,12,{tex:"templeStone"});wall(scene,-450,-426,28,30,0,12,{tex:"templeStone"});
+  box(scene,[24,1,18],[-438,.5,21],"white",{...st,collide:true,shadow:false});const srR=roofGroup(-450,-426,12,30,13);box(srR,[26,1.2,20],[-438,12.6,21],"white",{...st});
+  W.secretChestPos=V3(-438,1,24);
+  // внутрішня стіна святилища
+  w(-460,-444,-36,-34,12);w(-436,-400,-36,-34,12);
+  W.sanctumDoor=box(scene,[8,10,2],[-440,y+5,-35],"white",{tex:"templeStone",tile:3,collide:true,dyn:true});
+  W.crystal=box(scene,[2,3,2],[-420,y+5,-33.5],"#9FE3D8",{m:"glass",rot:[0,45,0],dyn:true});
+  box(scene,[6,2.4,4],[-452,y+1.2,-44],"white",{tex:"marble",tile:2,collide:true});W.altarPos=V3(-452,y+2.4,-44);
+  const altarHolder=new THREE.Group();altarHolder.position.copy(W.altarPos);altarHolder.userData.noMerge=true;scene.add(altarHolder);W.altarHolder=altarHolder;
+  // колони й руїни (без даху — храм під відкритим небом)
+  for(const x of[-456,-444,-432,-420,-408])for(const z of[-46,6]){const hh=x===-432&&z===6?6:h-1;box(scene,[2.6,hh,2.6],[x,y+hh/2,z],"white",{shape:"vcyl",material:mat("white","tex:templeStone"),collide:true})}
+  for(let i=0;i<6;i++)box(scene,[2,1,8+i],[-460+i*12,y+h+.5,-51],"white",{...st});
+  for(let i=0;i<8;i++)box(scene,[.5,4+i%3*2,.3],[-458+i*8,y+h-3,-49.6],"greenMid",{m:"sway"});
+  owl(scene,-446,y,4,180);
+  const tab=box(scene,[6,4,.5],[-394,3,-31],"white",{tex:"templeStone",tile:3});sign(tab,"back","ЗАТОПЛЕНИЙ ХРАМ","ink");
+  W.templeHint=V3(-394,3,-31);
+  // дзеркала й промінь
+  W.mirrors=[];const cells=[[1,2],[2,2],[2,0],[3,0]];
+  cells.forEach(([i,j],k)=>{const x=T.gx+i*T.cell,z=T.gz+j*T.cell;box(scene,[2.4,3,2.4],[x,y+1.5,z],"white",{tex:"marble",tile:2,collide:true});
+    const g=new THREE.Group();g.position.set(x,y+4.6,z);g.userData.noMerge=true;scene.add(g);box(g,[3.4,3,.3],[0,0,0],"#BFE3F5",{m:"glass",dyn:true});box(g,[3.8,.3,.5],[0,1.6,0],"gold",{m:"metal",dyn:true});
+    W.mirrors.push({i,j,g,pos:V3(x,y+3,z)})});
+  W.sourcePos=V3(T.x0+2,y+4.6,T.gz+2*T.cell);box(scene,[1,3,3],[T.x0+2.2,y+4.6,T.gz+2*T.cell],"#FFE7A3",{m:"neon"});
+  W.beam=new THREE.Group();W.beam.userData.noMerge=true;scene.add(W.beam);
+}
+
+/* ---------- Темна гробниця (північний схід) ---------- */
+const CRYPT={x0:358,x1:472,z0:-322,z1:-258,top:11};
+function buildCrypt(){
+  const st={tex:"cryptStone",tile:4},y=0;
+  const cw=(x0,x1,z0,z1,hh)=>wall(scene,x0,x1,z0,z1,y,hh||CRYPT.top,{tex:"cryptStone",tile:4});
+  // скеля навколо
+  const R=seeded(31);for(let i=0;i<22;i++){const w=14+R()*20,hh=14+R()*14,x=350+R()*130,z=-335+R()*90;if(x>356&&x<474&&z>-324&&z<-256)continue;box(scene,[w,hh,w*.9],[x,hh/2-2,z],"white",{tex:"cryptStone",tile:8,collide:true,rot:[0,R()*40,0]})}
+  box(scene,[120,1,70],[415,-.3,-290],"white",{...st,shadow:false});
+  // фасад
+  box(scene,[3,16,10],[358,8,-299],"white",{...st,collide:true});box(scene,[3,16,10],[358,8,-281],"white",{...st,collide:true});box(scene,[3,4,8],[358,14,-290],"white",{...st});
+  const fs=box(scene,[.4,2.4,12],[356.3,13.8,-290],"forestDeep");sign(fs,"left","ТЕМНА ГРОБНИЦЯ","lime300");
+  for(const z of[-297,-283])box(scene,[1,1.6,1],[356,9,z],"#7FD3FF",{m:"neon"});
+  // коридор
+  cw(358,410,-296,-294);cw(358,402,-286,-284);cw(406,410,-286,-284);
+  W.crackWall=box(scene,[4,CRYPT.top,2],[404,CRYPT.top/2,-285],"white",{tex:"stone",tile:3,collide:true,dyn:true});
+  // таємна кімната за тріснутою стіною
+  cw(398,400,-284,-272);cw(408,410,-284,-272);cw(398,410,-274,-272);
+  W.crackRoom=V3(404,1,-278);
+  // зала
+  cw(410,412,-322,-294);cw(410,412,-286,-258);cw(410,452,-322,-320);cw(410,452,-260,-258);cw(450,452,-322,-294);cw(450,452,-286,-258);
+  W.tombDoor=box(scene,[2,CRYPT.top,8],[451,CRYPT.top/2,-290],"white",{tex:"cryptStone",tile:4,collide:true,dyn:true});
+  cw(452,472,-300,-298);cw(452,472,-282,-280);cw(470,472,-300,-280);
+  // стеля (ховається, коли гравець усередині)
+  const rg=roofGroup(CRYPT.x0,CRYPT.x1,CRYPT.z0,CRYPT.z1,CRYPT.top+1.5);
+  box(rg,[52,1.2,12],[384,CRYPT.top+.6,-290],"white",{...st});box(rg,[42,1.2,64],[431,CRYPT.top+.6,-290],"white",{...st});box(rg,[20,1.2,20],[462,CRYPT.top+.6,-290],"white",{...st});box(rg,[12,1.2,14],[404,CRYPT.top+.6,-278],"white",{...st});
+  W.cryptRoof=rg;
+  // шипи-пастки в коридорі
+  W.spikes=[];for(const [x,ph] of[[376,0],[391,1.4]]){const g=new THREE.Group();g.position.set(x,0,-290);g.userData.noMerge=true;scene.add(g);
+    box(scene,[6,.2,8],[x,.1,-290],"cryptDark",{shadow:false});for(let a=0;a<4;a++)for(let b=0;b<3;b++)box(g,[.5,2.4,.5],[-2.2+a*1.45,-1,-2.6+b*2.6],"#C9CFD2",{m:"metal",dyn:true});
+    W.spikes.push({g,x0:x-3,x1:x+3,z0:-294,z1:-286,ph,up:false})}
+  // гліфи
+  const GL=["☾","☀","★","◆"];W.glyphs=[];
+  [[420,-302],[440,-302],[420,-278],[440,-278]].forEach(([x,z],k)=>{box(scene,[3,3,3],[x,1.5,z],"white",{...st,collide:true});const s=box(scene,[2.4,2.4,2.4],[x,4.2,z],"cryptDark",{dyn:true});sign(s,"top",GL[k],"#7FD3FF");sign(s,"front",GL[k],"#7FD3FF");sign(s,"back",GL[k],"#7FD3FF");W.glyphs.push({k,sym:GL[k],mesh:s,pos:V3(x,3,z)})});
+  // настінні розписи — видно лише з ліхтариком
+  W.murals=[];const ord=S.crypt.order;
+  [[411.2,-312,"right"],[411.2,-268,"right"],[449.6,-312,"left"],[449.6,-268,"left"]].forEach(([x,z,f],k)=>{const p=box(scene,[.2,4,8],[x,6,z],"#2B2A33",{dyn:true});const sg=sign(p,f,["I","II","III","IV"][k]+" · "+GL[ord[k]],"#F4C27F");W.murals.push(sg.userData.group)});
+  // уступ для мотузки
+  box(scene,[16,1,8],[420,9,-317],"white",{...st,collide:true});box(scene,[16,9,1],[420,4.5,-313.3],"cryptDark",{collide:true});
+  W.ledgeBase=V3(420,1,-310);W.ledgeTop=V3(420,9.5,-318);
+  W.rope=box(scene,[.3,9,.3],[420,4.5,-312.8],"tan",{dyn:true});W.rope.visible=false;
+  W.ledgeItem=new THREE.Group();W.ledgeItem.position.set(424,9.5,-318);W.ledgeItem.userData.noMerge=true;scene.add(W.ledgeItem);
+  // гробниця
+  box(scene,[6,2.4,4],[466,1.2,-290],"white",{tex:"marble",tile:2,collide:true});W.tombAltar=V3(466,2.4,-290);
+  W.tombHolder=new THREE.Group();W.tombHolder.position.copy(W.tombAltar);W.tombHolder.userData.noMerge=true;scene.add(W.tombHolder);
+  W.cryptChestPos=V3(460,0,-296);
+  W.cryptLights=[pointLight(430,8,-290,0x7fd3ff,.7,34),pointLight(462,7,-290,0xffb35a,.6,22)];
+  for(const [x,z] of[[412.5,-300],[412.5,-280],[449.5,-300],[449.5,-280]])box(scene,[.6,1.4,.6],[x,7,z],"#7FD3FF",{m:"neon"});
+}
+
+/* ---------- Руїни обсерваторії (пагорб на південному заході) ---------- */
+function buildObservatory(){
+  const o=LAY.obs,y=o.h,cx=o.x,cz=o.z;
+  box(scene,[60,1,60],[cx,y-.3,cz],"white",{shape:"vcyl",material:mat("white","tex:marble"),shadow:false});
+  for(let i=0;i<14;i++){const a=i/14*Math.PI*2,x=cx+Math.cos(a)*27,z=cz+Math.sin(a)*27,hh=i%3===0?5:i%4===0?8:12;
+    box(scene,[2.6,hh,2.6],[x,y+hh/2,z],"white",{shape:"vcyl",material:mat("white","tex:marble"),collide:true});if(hh===12)box(scene,[3.4,.8,3.4],[x,y+12.4,z],"white",{tex:"marble",tile:2})}
+  box(scene,[10,1.4,10],[cx,y+.7,cz],"white",{shape:"vcyl",material:mat("white","tex:marble"),collide:true});
+  W.armillary=new THREE.Group();W.armillary.position.set(cx,y+6,cz);W.armillary.userData.noMerge=true;scene.add(W.armillary);
+  for(let r=0;r<3;r++){const ring=new THREE.Group();for(let a=0;a<16;a++){const t=a/16*Math.PI*2;box(ring,[1.2,.3,.3],[Math.cos(t)*(3.2+r*.6),Math.sin(t)*(3.2+r*.6),0],r===1?"gold":"bronze",{m:"metal",rot:[0,0,t/DEG+90],dyn:true})}ring.rotation.y=r*1.1;W.armillary.add(ring)}
+  box(W.armillary,[1.4,1.4,1.4],[0,0,0],"orange",{m:"neon",dyn:true});
+  box(scene,[1,4.6,1],[cx,y+3.4,cz],"bronze",{m:"metal"});
+  W.obsStart=V3(cx,y+2,cz-6);const pl=box(scene,[3,2,1.2],[cx,y+1.8,cz-6],"forest");sign(pl,"front","ЗАПУСК","cream");
+  W.pillars=[];const PC=["#D2601A","#8CC04F","#9FE3D8","#F2B632","#D33A2C"],NOTE=[392,440,494,587,659];
+  for(let i=0;i<5;i++){const a=-Math.PI/2+(i-2)*.55+Math.PI,x=cx+Math.cos(a)*15,z=cz+Math.sin(a)*15;
+    box(scene,[2.4,4,2.4],[x,y+2,z],"white",{tex:"marble",tile:2,collide:true});const cr=box(scene,[1.8,2.4,1.8],[x,y+5.2,z],PC[i],{dyn:true,rot:[0,45,0]});
+    W.pillars.push({i,mesh:cr,col:PC[i],note:NOTE[i],pos:V3(x,y+4,z)})}
+  // архів (прихована кімната)
+  const ax=cx,az=cz+22,x0=ax-7,x1=ax+7,z0=az-5,z1=az+6;
+  wall(scene,x0,x1,z1-1.4,z1,y,10,{tex:"marble"});wall(scene,x0,x0+1.4,z0,z1,y,10,{tex:"marble"});wall(scene,x1-1.4,x1,z0,z1,y,10,{tex:"marble"});
+  wall(scene,x0,ax-3,z0,z0+1.4,y,10,{tex:"marble"});wall(scene,ax+3,x1,z0,z0+1.4,y,10,{tex:"marble"});box(scene,[6,2,1.4],[ax,y+9,z0+.7],"white",{tex:"marble",tile:2});
+  W.archiveDoor=box(scene,[6,8,1.2],[ax,y+4,z0+.7],"bronze",{m:"metal",collide:true,dyn:true});
+  const arR=roofGroup(x0,x1,z0,z1,y+11);box(arR,[16,1.2,13],[ax,y+10.6,(z0+z1)/2],"white",{tex:"marble",tile:3});box(arR,[16,.6,1],[ax,y+11.4,z0],"gold",{m:"metal"});
+  const as=box(scene,[8,1.6,.3],[ax,y+11.4,z0-.4],"forestDeep");sign(as,"front","АРХІВ","gold");
+  box(scene,[4,2,3],[ax-3,y+1,az+2],"white",{tex:"marble",tile:2,collide:true});W.archivePos=V3(ax-3,y+2,az+2);
+  W.archiveHolder=new THREE.Group();W.archiveHolder.position.copy(W.archivePos);W.archiveHolder.userData.noMerge=true;scene.add(W.archiveHolder);
+  W.archiveChestPos=V3(ax+3,y,az+2.5);
+  const t=box(scene,[6,3,.5],[cx,y+1.5,cz-30],"white",{tex:"marble",tile:2});sign(t,"front","ОБСЕРВАТОРІЯ","forest");
+
+}
+
+/* ---------- Рослинність (інстансинг, вітер) ---------- */
+function tuftGeo(){const g=new THREE.BufferGeometry(),pos=[],nor=[];const blade=(a,h,lean)=>{const cx=Math.cos(a)*.18,cz=Math.sin(a)*.18,w=.18,dx=-Math.sin(a)*w,dz=Math.cos(a)*w;
+    const tx=cx+Math.cos(a)*lean,tz=cz+Math.sin(a)*lean;const v=[[cx-dx,0,cz-dz],[cx+dx,0,cz+dz],[tx,h,tz]];for(const q of v){pos.push(...q);nor.push(0,1,0)}for(const q of[v[1],v[0],v[2]]){pos.push(...q);nor.push(0,1,0)}};
+  for(let i=0;i<7;i++)blade(i/7*Math.PI*2+i,.9+(i%3)*.45,.35);g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setAttribute("normal",new THREE.Float32BufferAttribute(nor,3));return g}
+function scatter(count,test,place){const out=[];let tries=0;while(out.length<count&&tries<count*12){tries++;const x=(Math.random()-.5)*1180,z=(Math.random()-.5)*1180;if(!test(x,z))continue;out.push(place(x,z))}return out}
+function buildVegetation(){
+  const dummy=new THREE.Object3D(),col=new THREE.Color();
+  const cluster=(x,z,f,th)=>fbm(x*f+5,z*f-3)>th;
+  // трава
+  const grassM=addSway(new THREE.MeshLambertMaterial({side:THREE.DoubleSide,vertexColors:false}),.35,true);
+  const GN=9000,grass=new THREE.InstancedMesh(tuftGeo(),grassM,GN);let gi=0;
+  scatter(GN,(x,z)=>!zoneBlocked(x,z,2)&&cluster(x,z,.018,-.15),(x,z)=>{const s=.8+Math.random()*1.2;dummy.position.set(x,groundH(x,z),z);dummy.rotation.set(0,Math.random()*6.28,0);dummy.scale.set(s,s*(.8+Math.random()*.7),s);dummy.updateMatrix();grass.setMatrixAt(gi,dummy.matrix);
+    col.copy(lin(["#7FB24E","#8CC04F","#6FA83A","#9CCB5E"][gi%4]));grass.setColorAt(gi,col);gi++});
+  grass.count=gi;grass.userData.noMerge=true;grass.receiveShadow=true;scene.add(grass);
+  // квіти
+  const FN=1600,flowers=new THREE.InstancedMesh(new THREE.BoxGeometry(.7,.7,.7).translate(0,1.4,0),addSway(new THREE.MeshLambertMaterial(),.3,true),FN);let fi=0;
+  const stems=new THREE.InstancedMesh(new THREE.BoxGeometry(.12,1.4,.12).translate(0,.7,0),addSway(new THREE.MeshLambertMaterial({color:lin("#4E8B3A")}),.3,true),FN);
+  scatter(FN,(x,z)=>!zoneBlocked(x,z,3)&&cluster(x,z,.03,.25),(x,z)=>{dummy.position.set(x,groundH(x,z),z);dummy.rotation.set(0,Math.random()*6.28,0);const s=.7+Math.random()*.6;dummy.scale.set(s,s,s);dummy.updateMatrix();flowers.setMatrixAt(fi,dummy.matrix);stems.setMatrixAt(fi,dummy.matrix);
+    col.copy(lin(["#D2601A","#FBF8EC","#F4C27F","#D33A2C","#C9A2E8"][fi%5]));flowers.setColorAt(fi,col);fi++});
+  flowers.count=stems.count=fi;[flowers,stems].forEach(m=>{m.userData.noMerge=true;scene.add(m)});
+  // кущі різних розмірів
+  const BN=420,bushA=new THREE.InstancedMesh(boxGeo,addSway(new THREE.MeshLambertMaterial(),.12,true),BN),bushB=new THREE.InstancedMesh(boxGeo,addSway(new THREE.MeshLambertMaterial(),.12,true),BN);let bi=0;
+  W.bushes=[];
+  scatter(BN,(x,z)=>!zoneBlocked(x,z,6)&&(cluster(x,z,.012,.05)||Math.random()<.08)&&W.trees.every(([tx,tz])=>Math.abs(tx-x)>5||Math.abs(tz-z)>5),(x,z)=>{const s=1.5+Math.pow(Math.random(),2)*3.4,y=groundH(x,z);
+    dummy.position.set(x,y+s*.35,z);dummy.rotation.set(0,Math.random()*6.28,0);dummy.scale.set(s*1.3,s*.75,s*1.1);dummy.updateMatrix();bushA.setMatrixAt(bi,dummy.matrix);
+    dummy.position.set(x+s*.25,y+s*.8,z-s*.15);dummy.scale.set(s*.8,s*.6,s*.8);dummy.updateMatrix();bushB.setMatrixAt(bi,dummy.matrix);
+    const g=["#2F7D32","#3E8A3F","#1E5A2B","#4F9A45"][bi%4];bushA.setColorAt(bi,lin(g));bushB.setColorAt(bi,lin(["#6FA83A","#8CC04F"][bi%2]));
+    if(s>3.2){const cl={box:new THREE.Box3(V3(x-s*.55,y,z-s*.5),V3(x+s*.55,y+s*.9,z+s*.5)),on:true,tag:"bush"};colliders.push(cl)}
+    W.bushes.push(V3(x,y+s,z));bi++});
+  bushA.count=bushB.count=bi;[bushA,bushB].forEach(m=>{m.userData.noMerge=true;m.castShadow=true;m.receiveShadow=true;scene.add(m)});
+}
+/* ---------- Комахи й птахи ---------- */
+function buildCritters(){
+  W.butterflies=[];const wingG=new THREE.PlaneGeometry(.9,.7).translate(.45,0,0);
+  for(let i=0;i<26;i++){const g=new THREE.Group();g.userData.noMerge=true;const colr=["#D2601A","#FBF8EC","#F4C27F","#9FE3D8"][i%4];
+    const m=new THREE.MeshLambertMaterial({color:lin(colr),side:THREE.DoubleSide});const l=new THREE.Mesh(wingG,m),r=new THREE.Mesh(wingG,m);r.scale.x=-1;g.add(l,r);
+    box(g,[.12,.12,.6],[0,0,0],"ink",{dyn:true});scene.add(g);const home=W.bushes[Math.floor(Math.random()*W.bushes.length)]||V3(0,2,0);
+    W.butterflies.push({g,l,r,home:home.clone(),ph:Math.random()*10,sp:.6+Math.random()*.6})}
+  // мошки/світлячки біля гравця (точки)
+  const N=70,pg=new THREE.BufferGeometry();pg.setAttribute("position",new THREE.Float32BufferAttribute(new Float32Array(N*3),3));
+  W.gnats=new THREE.Points(pg,new THREE.PointsMaterial({color:lin("#F4E7A0"),size:.35,transparent:true,opacity:.85}));W.gnats.userData={seeds:[...Array(N)].map(()=>[Math.random()*6.28,Math.random()*6.28,1+Math.random()*2,Math.random()])};scene.add(W.gnats);
+  // птахи
+  W.birds=[];const bw=new THREE.BufferGeometry();bw.setAttribute("position",new THREE.Float32BufferAttribute([0,0,-.6,0,0,.6,2.4,.2,0],3));bw.computeVertexNormals();
+  const bm=new THREE.MeshBasicMaterial({color:lin("#173A1D"),side:THREE.DoubleSide,fog:true});
+  for(let f=0;f<3;f++){const cx=(Math.random()-.5)*600,cz=(Math.random()-.5)*600,r=120+Math.random()*120,h=70+Math.random()*40,sp=(.05+Math.random()*.04)*(f%2?1:-1);
+    for(let i=0;i<5;i++){const g=new THREE.Group();const L=new THREE.Mesh(bw,bm),Rr=new THREE.Mesh(bw,bm);Rr.scale.x=-1;g.add(L,Rr);scene.add(g);W.birds.push({g,L,R:Rr,cx,cz,r:r+i*6,h:h+(i%2)*4,sp,off:i*.06,ph:Math.random()*6})}}
+}
+
+/* ================= Стан і збереження ================= */
+const SAVE_KEY="relicquest_save_v1";
+const DEF=()=>({v:2,money:0,unknown:0,artifacts:{},discovered:{},secrets:{},placed:["","","","","","","",""],upgrades:{tool:1,shelves:2,lab:1,backpack:1,bus:1},socket:false,rebirths:0,quest:1,dug:0,researched:0,purchases:0,itemBuys:0,earned:0,lastAncient:0,solution:null,tiles:null,started:false,
+  inv:{},hp:MAX_HP,tables:[{end:0,busy:false},{end:0,busy:false},{end:0,busy:false}],
+  temple:{mirrors:[1,2,0,2],solved:false,taken:false,secret:false},crypt:{order:null,progress:0,solved:false,taken:false,rope:false,ledge:false,crack:false,crackLoot:false},obs:{solved:false,taken:false},
+  fixed:{},flashlightOn:true,waypoint:null,visitors:0});
+let S=DEF();
+function migrate(d){
+  const D=DEF(),o=Object.assign(D,d);
+  o.upgrades=Object.assign(DEF().upgrades,d.upgrades||{});
+  if(!d.v||d.v<2){o.money=Math.floor(d.knowledge||0);delete o.knowledge;o.upgrades.lab=1;o.v=2}
+  o.upgrades.lab=clamp(o.upgrades.lab,1,3);
+  ["temple","crypt","obs"].forEach(k=>o[k]=Object.assign(DEF()[k],d[k]||{}));
+  if(!Array.isArray(o.tables)||o.tables.length<3)o.tables=DEF().tables;
+  return o;
+}
+function loadSave(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;return migrate(JSON.parse(raw))}catch(e){return null}}
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S))}catch(e){}}
+function ensurePuzzle(){
+  if(!S.solution)S.solution=shuffle([0,1,2,3]).slice(0,3);
+  if(!S.tiles)S.tiles=S.solution.map(v=>(v+2)%4);
+  if(!S.crypt.order)S.crypt.order=shuffle([0,1,2,3]);
+}
+
+/* ================= Утиліти інтерфейсу ================= */
+const $=id=>document.getElementById(id);
+function toast(text,color){
+  const t=document.createElement("div");t.className="toast";t.style.setProperty("--c",color||COL.forest);t.textContent=text;
+  const bx=$("toasts");bx.appendChild(t);while(bx.children.length>4)bx.firstChild.remove();
+  setTimeout(()=>{t.classList.add("out");setTimeout(()=>t.remove(),320)},3200);
+}
+let bubbleTimer=0;
+function foxSay(text){const b=$("bubble");b.textContent=text;b.classList.remove("off");clearTimeout(bubbleTimer);bubbleTimer=setTimeout(()=>b.classList.add("off"),7000)}
+const has=id=>(S.inv[id]||0)>0;
+
+/* ================= Гроші ================= */
+let currentEvent=null,eventEndsAt=0,nextEventAt=0;
+const payMult=()=>(1+S.rebirths*REBIRTH_BONUS)*(currentEvent&&currentEvent.id==="starnight"?2:1);
+const earnLog=[];
+function earn(n,why){n=Math.round(n);if(n<=0)return;S.money+=n;S.earned+=n;earnLog.push([performance.now()/1000,n]);$("kVal").classList.remove("bump");void $("kVal").offsetWidth;$("kVal").classList.add("bump");renderHUD()}
+function spend(n){if(S.money<n)return false;S.money-=n;renderHUD();return true}
+function ratePerMin(){const t=performance.now()/1000;while(earnLog.length&&earnLog[0][0]<t-60)earnLog.shift();return earnLog.reduce((a,b)=>a+b[1],0)}
+const capacity=()=>UPGBY.backpack.cap[S.upgrades.backpack-1];
+const placedCount=(id,except)=>S.placed.filter((v,k)=>v===id&&k!==except).length;
+function exhibitValue(){let s=0;for(let k=0;k<S.upgrades.shelves;k++){const id=S.placed[k];if(id&&ARTBY[id])s+=viewReward(ARTBY[id])}return s}
+const luck=()=>S.upgrades.tool+(has("protools")?1:0);
+
+/* ================= Завдання ================= */
+const QUESTS=[
+ {t:"Іди в Шепітний ліс на півночі. Знайди місце, що блищить, і затисни E, щоб викопати реліквію.",done:()=>S.dug>0,target:()=>nearestOf(digSpots.filter(d=>!d.hidden).map(d=>d.pos))||V3(0,0,-200)},
+ {t:"Є реліквія! Неси її до лабораторії на базі (на півдні) і поклади на дослідницький стіл.",done:()=>S.researched>0||S.tables.some(t=>t.busy),target:()=>W.tables[0].pos},
+ {t:"Дослідження триває 2 хвилини. Поки чекаєш, зазирни в крамницю «Компас» на площі або копай ще.",done:()=>S.researched>0,target:()=>W.tables[0].pos},
+ {t:"Постав артефакт у вітрину музею. Відвідувачі платитимуть за перегляд!",done:()=>exhibitValue()>0,target:()=>W.pedestals[0].pos},
+ {t:"Автобус привозить відвідувачів до зупинки біля бази. Заробіть перші 30 грн на екскурсіях.",done:()=>S.earned>=30,target:()=>V3(LAY.stop.x,0,LAY.stop.z)},
+ {t:"Купи спорядження в крамниці «Компас» на площі. Почни з компаса або аптечки.",done:()=>S.itemBuys>0,target:()=>W.shopCounter},
+ {t:"Дивний камінь — частина механізму! Знайди Піщаний каньйон на сході й встав камінь у гніздо.",done:()=>S.socket,target:()=>W.socketPos},
+ {t:"Знайди три камені-підказки з символами й поверни плити в правильному порядку.",done:()=>!!S.secrets.canyon,target:()=>W.socketPos},
+ {t:"Двері відчинено! Відкрий скриню предків у таємній кімнаті каньйону.",done:()=>!!S.secrets.key,target:()=>W.ancient},
+ {t:"Затоплений храм на заході: спрямуй промінь світла дзеркалами на кришталь.",done:()=>S.temple.solved,target:()=>V3(-392,0,-20)},
+ {t:"Темна гробниця на північному сході. Візьми ліхтарик: підказки намальовані на стінах.",done:()=>S.crypt.solved,target:()=>V3(356,0,-290)},
+ {t:"Руїни обсерваторії на пагорбі (південний захід): запам'ятай мелодію кристалів.",done:()=>S.obs.solved,target:()=>W.obsStart},
+ {t:"Ти справжній дослідник! Збери всю колекцію, відкривай легендарні скрині й розвивай музей.",done:()=>false,target:()=>null},
+];
+function questTarget(){if(S.waypoint)return V3(S.waypoint[0],0,S.waypoint[1]);const q=QUESTS[S.quest-1];return q&&q.target?q.target():null}
+function checkQuest(){let adv=false;while(S.quest<QUESTS.length&&QUESTS[S.quest-1].done()){S.quest++;adv=true}if(adv){foxSay(QUESTS[S.quest-1].t);sfx("quest");renderHUD()}}
+function nearestOf(list){let b=null,bd=1e9;for(const p of list){const d=p.distanceTo(player.pos);if(d<bd){bd=d;b=p}}return b}
+
+/* ================= Артефакти ================= */
+function roll(level,legendPct){
+  const l=level-1,w=[["common",64-6*l],["uncommon",24+2*l],["rare",9+2.5*l],["epic",3+1.2*l],["legendary",legendPct||0]];
+  let t=w.reduce((a,b)=>a+Math.max(0,b[1]),0),r=Math.random()*t,rar="common";
+  for(const [k,v] of w){if(r<Math.max(0,v)){rar=k;break}r-=Math.max(0,v)}
+  const pool=ART.filter(a=>a.r===rar&&a.roll);return pool.length?pool[rint(0,pool.length-1)].id:"stone";
+}
+function addArtifact(id,quiet){
+  const a=ARTBY[id],rr=RAR[a.r];S.artifacts[id]=(S.artifacts[id]||0)+1;const isNew=!S.discovered[id];S.discovered[id]=true;
+  toast((isNew?"Нова знахідка: ":"Знахідка: ")+a.name+" · "+rr.name,rr.color);sfx(rr.o>=4?"rare":"find");
+  if(isNew&&!quiet){if(id==="stone")foxSay("Дивний камінь… На ньому є вирізи. Схоже, це частина якогось механізму!");else if(rr.o>=4)foxSay("Ого! "+a.name+"! "+a.desc)}
+  checkQuest();renderHUD();save();
+}
+
+/* ================= Вітрини ================= */
+function updatePedestals(){
+  W.pedestals.forEach((p,k)=>{
+    const unlocked=k<S.upgrades.shelves,id=unlocked?S.placed[k]:"";
+    p.base.material=unlocked?mat("white","tex:marble"):mat("rock",null,.4);p.top.material=unlocked?mat("forest"):mat("forest",null,.4);
+    if(p.cur!==id){if(p.model){p.holder.remove(p.model);p.model=null}p.cur=id;if(id){p.model=artifactModel(id,1.5);p.holder.add(p.model)}}
+    p.label.off=!unlocked;p.label.el.textContent=id?ARTBY[id].name+" · "+viewReward(ARTBY[id])+" грн/перегляд":"Порожня вітрина";
+    p.label.el.style.borderColor=id?RAR[ARTBY[id].r].color:"";
+  });
+}
+function placeBest(k){
+  const cur=S.placed[k],ci=cur&&ARTBY[cur]?viewReward(ARTBY[cur]):-1;let best=null,bi=ci;
+  for(const id in S.artifacts){const a=ARTBY[id];if(a&&S.artifacts[id]-placedCount(id,k)>0&&viewReward(a)>bi){best=id;bi=viewReward(a)}}
+  if(best){S.placed[k]=best;toast("У вітрині: "+ARTBY[best].name,RAR[ARTBY[best].r].color);sfx("place");updatePedestals();checkQuest();renderHUD();save()}
+  else if(cur)toast("Тут уже найкращий експонат!");else toast("Немає артефактів. Досліди реліквії в лабораторії!",COL.orange);
+}
+function autoArrange(){
+  const list=[];for(const id in S.artifacts){const a=ARTBY[id];if(a)for(let i=0;i<S.artifacts[id];i++)list.push(a)}
+  list.sort((a,b)=>viewReward(b)-viewReward(a));for(let k=0;k<8;k++)S.placed[k]=k<S.upgrades.shelves&&list[k]?list[k].id:"";
+  updatePedestals();checkQuest();renderHUD();save();toast("Музей оновлено!");sfx("place");
+}
+
+/* ================= Автобус і відвідувачі ================= */
+const BUS={state:"away",x:-760,v:0,timer:6,mesh:null,col:null,stopX:LAY.stop.x-2,lane:104};
+const visitors=[];
+const SHIRTS=["#D2601A","#2F7D32","#F4C27F","#9FE3D8","#C9A2E8","#FBF8EC","#D33A2C","#6FA83A","#B8722C"];
+function buildBus(){
+  const g=new THREE.Group();g.userData.noMerge=true;
+  box(g,[20,6.4,6.6],[0,4.2,0],"orange",{dyn:true});box(g,[20.1,1.4,6.7],[0,3,0],"paper",{dyn:true});box(g,[20,.6,6.6],[0,7.7,0],"paper",{dyn:true});
+  for(let i=0;i<5;i++)for(const s of[-1,1])box(g,[3,2.2,.1],[-7.2+i*3.6,5.4,s*3.32],"#BFE3F5",{m:"glass",dyn:true});
+  box(g,[.1,2.6,5.4],[10.02,5.2,0],"#BFE3F5",{m:"glass",dyn:true});box(g,[2.6,5,.12],[5,3.6,3.34],"#BFE3F5",{m:"glass",dyn:true});
+  for(const x of[-6.5,6.5])for(const s of[-1,1])box(g,[2.4,2.4,1.2],[x,1.2,s*3.1],"ink",{shape:"cyl",rot:[0,0,0],dyn:true});
+  box(g,[.3,.8,1.4],[10.1,2.4,-2.2],"tan",{m:"neon",dyn:true});box(g,[.3,.8,1.4],[10.1,2.4,2.2],"tan",{m:"neon",dyn:true});
+  const sgn=box(g,[8,1.2,.1],[-1,6.6,3.36],"forest",{dyn:true});sign(sgn,"back","МУЗЕЙ ЗНАХІДОК","cream");
+  g.position.set(-760,0,BUS.lane);scene.add(g);BUS.mesh=g;
+  BUS.col={box:new THREE.Box3(),on:false,tag:"bus"};colliders.push(BUS.col);
+}
+function passengerCount(){
+  const n=S.placed.slice(0,S.upgrades.shelves).filter(Boolean).length,rare=S.placed.slice(0,S.upgrades.shelves).reduce((a,id)=>a+(id?RAR[ARTBY[id].r].o:0),0);
+  return clamp(1+Math.floor(n*.5+rare*.12)+(S.upgrades.bus-1),1,9);
+}
+function floorAt(x,z){if(x>-64.7&&x<64.7&&z>113.3&&z<193.7)return(x>-22&&x<22&&z>128&&z<156)?1.2:1;if(z>92&&z<108)return .12;return groundH(x,z)}
+function spawnVisitor(){
+  if(visitors.length>=26)return;
+  const o={shirt:SHIRTS[rint(0,SHIRTS.length-1)],pants:["#5B6B3A","#3C5E3F","#6B3E1E","#2B4A2E"][rint(0,3)],hat:["cap","sun",null,null][rint(0,3)],hatCol:SHIRTS[rint(0,SHIRTS.length-1)],hair:["#5A3A22","#2B2018","#C9772E","#E9C27F"][rint(0,3)],bag:Math.random()<.4?"#8C5A2B":null,skin:["#F2C29B","#D9A066","#B8722C","#F7D7B5"][rint(0,3)]};
+  const g=personModel(o);const sc=.88+Math.random()*.16;g.scale.setScalar(sc);
+  const start=V3(BUS.x+5,0,108.6);g.position.copy(start);scene.add(g);
+  const occupied=W.pedestals.filter((p,k)=>k<S.upgrades.shelves&&S.placed[k]);const picks=shuffle(occupied.slice()).slice(0,rint(2,4));
+  const v={g,pos:start.clone(),path:[],state:"walk",timer:0,picks,phase:Math.random()*6,face:0,walk:0,emote:null,row:-1,spd:6.5+Math.random()*1.5};
+  v.path=[V3(start.x+rnd(-1,1),0,110),V3(5+rnd(-1,1),0,110),V3(rnd(-1,1),0,117.5),V3(rnd(-1.5,1.5),0,124),V3(rnd(-1,1),0,131)];
+  v.next="museum";visitors.push(v);S.visitors++;
+}
+function planNextView(v){
+  const p=v.picks.shift();
+  if(!p){v.path=[V3(rnd(-1,1),0,131),V3(rnd(-1,1),0,124),V3(rnd(-1,1),0,117.5),V3(5+rnd(-1,1),0,110),V3(BUS.stopX+rnd(-8,12),0,110+rnd(-.3,.3))];v.next="wait";return}
+  const zRow=p.row?142.5:133.5,cur=v.pos;v.path=[];
+  if(Math.abs(cur.z-zRow)>.5){v.path.push(V3(rnd(-.8,.8),0,cur.z));v.path.push(V3(rnd(-.8,.8),0,zRow))}
+  v.path.push(V3(p.view.x+rnd(-1.2,1.2),0,zRow));v.next="view";v.ped=p;
+}
+function updateVisitors(dt){
+  for(let i=visitors.length-1;i>=0;i--){const v=visitors[i];
+    if(v.state==="walk"){const tgt=v.path[0];
+      if(!tgt){if(v.next==="museum"){if(!v.picks.length){v.state="look";v.timer=2.5;emote(v,"Тут порожньо…")}else planNextView(v);continue}
+        if(v.next==="view"){v.state="view";v.timer=rnd(3.5,6);v.face=Math.PI;continue}
+        if(v.next==="wait"){v.state="wait";continue}
+        if(v.next==="board"){scene.remove(v.g);if(v.emote){v.emote.el.remove();labels.splice(labels.indexOf(v.emote),1)}visitors.splice(i,1);continue}}
+      const d=V3(tgt.x-v.pos.x,0,tgt.z-v.pos.z),dist=d.length();
+      // ввічливо обходимо гравця
+      const pd=V3(v.pos.x-player.pos.x,0,v.pos.z-player.pos.z);if(pd.length()<2.6){pd.normalize();v.pos.addScaledVector(pd,dt*3)}
+      if(dist<.35)v.path.shift();else{d.multiplyScalar(1/dist);const s=Math.min(v.spd,dist*4);v.pos.addScaledVector(d,s*dt);v.face=Math.atan2(-d.x,-d.z);v.walk+=dt*s*.55}
+    }else if(v.state==="view"){v.timer-=dt;v.walk*=.9;
+      if(v.timer<=0){const p=v.ped,id=S.placed[p.i];if(id&&p.i<S.upgrades.shelves){const a=ARTBY[id],pay=Math.round(viewReward(a)*payMult());earn(pay);cashPop(p.pos,pay);if(Math.random()<.45)emote(v,a.r==="legendary"||a.r==="epic"?"Неймовірно!":["Ого!","Красиво!","Цікаво…"][rint(0,2)])}
+        v.state="walk";planNextView(v)}}
+    else if(v.state==="look"){v.timer-=dt;v.face+=dt*1.5;if(v.timer<=0){v.state="walk";v.picks=[];planNextView(v)}}
+    else if(v.state==="wait"){v.walk*=.9;v.face=Math.PI;if(BUS.state==="stopped"){v.state="walk";v.path=[V3(BUS.x+5+rnd(-.5,.5),0,108.6)];v.next="board"}}
+    v.pos.y=floorAt(v.pos.x,v.pos.z);
+    const g=v.g;g.position.lerp(v.pos,Math.min(1,dt*14));let df=v.face-g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));g.rotation.y+=df*Math.min(1,dt*8);
+    const sw=Math.sin(v.walk*2)*.6*(v.state==="walk"?1:0);const u=g.userData;u.legL.rotation.x=sw;u.legR.rotation.x=-sw;u.armL.rotation.x=-sw*.8;u.armR.rotation.x=sw*.8;u.head.rotation.y=v.state==="view"?Math.sin(performance.now()/700+v.phase)*.3:0;
+    if(v.emote){v.emote.pos.set(g.position.x,g.position.y+10,g.position.z)}
+  }
+}
+function emote(v,text){if(v.emote){v.emote.el.remove();labels.splice(labels.indexOf(v.emote),1)}const L=worldLabel(text,v.pos.clone().setY(10),{max:60,cls:"vis"});v.emote=L;setTimeout(()=>{if(v.emote===L){L.el.remove();labels.splice(labels.indexOf(L),1);v.emote=null}},2600)}
+function cashPop(pos,n){const L=worldLabel("+"+n+" грн",pos.clone().add(V3(0,5,0)),{max:80,cls:"cash"});const t0=performance.now();sfx("coin");
+  const tick=()=>{const k=(performance.now()-t0)/1400;L.pos.y=pos.y+5+k*3;L.el.style.opacity=String(1-k);if(k<1)requestAnimationFrame(tick);else{L.el.remove();labels.splice(labels.indexOf(L),1)}};tick()}
+function updateBus(dt){
+  const b=BUS;b.timer-=dt;
+  const period=BUS_PERIOD*(currentEvent&&currentEvent.id==="tourists"?.5:1);
+  if(b.state==="away"){b.x=-760;if(b.timer<=0){b.state="arriving";b.v=26}}
+  else if(b.state==="arriving"){const d=b.stopX-b.x;b.v=Math.max(3,Math.min(26,d*.9));b.x+=b.v*dt;if(d<.3){b.x=b.stopX;b.state="stopped";b.timer=8;b.spawnLeft=passengerCount();b.spawnT=.6;sfx("bus")}}
+  else if(b.state==="stopped"){b.spawnT-=dt;if(b.spawnLeft>0&&b.spawnT<=0){spawnVisitor();b.spawnLeft--;b.spawnT=.75}
+    const boarding=visitors.some(v=>v.next==="board");if(b.timer<=0&&b.spawnLeft<=0&&!boarding){b.state="leaving";b.v=2}}
+  else if(b.state==="leaving"){b.v=Math.min(30,b.v+dt*9);b.x+=b.v*dt;if(b.x>760){b.state="away";b.timer=period}}
+  b.mesh.position.set(b.x,0,b.lane);b.col.on=b.state!=="away";b.col.box.min.set(b.x-10,0,b.lane-3.3);b.col.box.max.set(b.x+10,8,b.lane+3.3);
+  let eta=b.state==="away"?b.timer+ (760+b.stopX)/26:b.state==="arriving"?(b.stopX-b.x)/Math.max(6,b.v):0;
+  W.busBoard.el.textContent=b.state==="stopped"?"Автобус на зупинці":b.state==="leaving"?"Автобус від'їжджає":"Автобус через "+Math.max(1,Math.ceil(eta))+" с";
+}
+
+/* ================= Розкопки ================= */
+const digSpots=[],chests=[];
+function sparkles(g,col,n=3){const s=[];for(let i=0;i<n;i++){const m=box(g,[.5,.5,.5],[0,3,0],col,{m:"neon",shadow:false,dyn:true});m.userData.ph=i*2.1;s.push(m)}return s}
+function forestPoint(){for(let t=0;t<40;t++){const F=LAY.forest,x=rnd(F.x1+10,F.x2-10),z=rnd(F.z1+10,F.z2-10);if(W.trees.every(([tx,tz])=>Math.hypot(tx-x,tz-z)>7))return V3(x,groundH(x,z),z)}return V3(0,0,-200)}
+function wildPoint(){for(let t=0;t<60;t++){const x=rnd(-560,560),z=rnd(-560,560);if(zoneBlocked(x,z,10))continue;if(W.trees.some(([tx,tz])=>Math.hypot(tx-x,tz-z)<7))continue;return V3(x,groundH(x,z),z)}return forestPoint()}
+function spawnDig(){
+  const hidden=Math.random()<.3,p=hidden&&Math.random()<.5?wildPoint():forestPoint(),g=new THREE.Group();g.position.copy(p);g.userData.noMerge=true;scene.add(g);
+  box(g,[4,1,4],[0,.3,0],"sand",{dyn:true});box(g,[2.4,.6,2.4],[.3,.9,-.2],"sandDark",{dyn:true});
+  const sp=sparkles(g,"tan");if(hidden){g.visible=false}
+  digSpots.push({pos:p,g,sp,hidden});
+}
+function removeSpot(list,s){s.alive=false;scene.remove(s.g);if(s.hints)s.hints.forEach(h=>scene.remove(h.g));const i=list.indexOf(s);if(i>=0)list.splice(i,1)}
+function dig(s){
+  if(S.unknown>=capacity()){toast("Рюкзак повний! Досліди реліквії в лабораторії.",COL.orange);sfx("error");return}
+  removeSpot(digSpots,s);S.dug++;sfx("dig");
+  if(currentEvent&&currentEvent.id==="quake"&&Math.random()<.05){addArtifact("heart");foxSay("СЕРЦЕ МЕХАНІЗМУ! Його знаходять лише під час Землетрусу!");return}
+  S.unknown++;if(s.hidden){S.bonusRelics=(S.bonusRelics||0)+1}
+  toast((s.hidden?"Схованка! ":"")+"+1 реліквія в рюкзаку ("+S.unknown+"/"+capacity()+")");checkQuest();renderHUD();save();
+}
+const digDuration=()=>Math.max(.45,1.8-.32*(S.upgrades.tool-1))*(has("protools")?.6:1);
+
+/* ================= Дослідницькі столи (рівно 120 с) ================= */
+function tableAction(i){
+  const t=S.tables[i];
+  if(i>=S.upgrades.lab){toast("Цей стіл ще не куплено. Відкрий «Покращення» → Дослідницькі столи.",COL.orange);return}
+  if(t.busy){const left=Math.ceil((t.end-Date.now())/1000);toast("Дослідження ще триває: "+fmtTime(left));return}
+  if(S.unknown<1){toast("Немає реліквій. Копай у Шепітному лісі!",COL.orange);sfx("error");return}
+  S.unknown--;t.busy=true;t.end=Date.now()+RESEARCH_TIME*1000;t.bonus=S.bonusRelics>0?(S.bonusRelics--,1):0;
+  sfx("place");toast("Реліквію покладено на стіл "+(i+1)+". Дослідження: 2:00");
+  if(S.researched===0&&S.quest<=3)foxSay("Дослідження триває рівно 2 хвилини. Можеш піти покопати або зазирнути в крамницю!");
+  refreshTables();checkQuest();renderHUD();save();
+}
+function completeTable(i){
+  const t=S.tables[i];t.busy=false;t.end=0;S.researched++;
+  const id=!S.discovered.stone&&S.researched<=2?"stone":roll(luck()+(t.bonus?2:0),0);
+  W.tables[i].doneT=4;sfx("research");addArtifact(id);refreshTables();save();
+}
+const fmtTime=s=>Math.floor(Math.max(0,s)/60)+":"+String(Math.max(0,s)%60).padStart(2,"0");
+function refreshTables(){
+  W.tables.forEach((w,i)=>{const t=S.tables[i],owned=i<S.upgrades.lab;w.tarp.visible=!owned;
+    if(t.busy&&!w.relic.children.length){const g=new THREE.Group();box(g,[1.8,1.2,1.4],[0,.6,0],"#8C6A44",{dyn:true});box(g,[1.9,.25,1.5],[0,.7,0],"tan",{dyn:true});box(g,[1.2,.5,.9],[.2,1.35,0],"rockDark",{dyn:true});w.relic.add(g)}
+    if(!t.busy&&w.relic.children.length)w.relic.clear();
+    w.beam.visible=t.busy;w.scr.material=t.busy?mat("lime300","neon"):mat("forestDeep")})
+}
+function updateTables(dt,t){
+  W.tables.forEach((w,i)=>{const s=S.tables[i],owned=i<S.upgrades.lab;
+    if(s.busy&&Date.now()>=s.end)completeTable(i);
+    if(s.busy){w.ring.rotation.y+=dt*2.4;w.beam.position.x=w.pos.x+Math.sin(t*2.2)*1.4;w.beam.material.emissiveIntensity=.6+Math.sin(t*9)*.3;w.relic.rotation.y+=dt*.5}
+    else w.ring.rotation.y+=dt*.2;
+    const L=w.label;if(w.doneT>0){w.doneT-=dt}
+    if(!owned){L.el.className="wl prog";L.el.innerHTML="Стіл "+(i+1)+" · купи в «Покращеннях»";}
+    else if(w.doneT>0){L.el.className="wl prog done";L.el.innerHTML="Дослідження завершено!"}
+    else if(s.busy){const left=Math.ceil((s.end-Date.now())/1000),f=1-left/RESEARCH_TIME;L.el.className="wl prog";L.el.innerHTML="Дослідження · "+fmtTime(left)+"<b><i style='width:"+(f*100).toFixed(1)+"%'></i></b>"}
+    else{L.el.className="wl prog";L.el.innerHTML="Стіл "+(i+1)+" вільний"}});
+}
+
+/* ================= Запечатані скрині ================= */
+let chestSeq=0;
+function chestModel(tier){
+  const T=CHEST_TIERS[tier],g=new THREE.Group();g.userData.noMerge=true;const sz=tier==="legendary"?1.25:tier==="epic"?1.12:1;
+  box(g,[4*sz,2.6*sz,3*sz],[0,1.3*sz,0],T.body==="wood"?"white":T.body,{tex:T.body==="wood"?"planks":undefined,tile:2,dyn:true});
+  box(g,[4.2*sz,1*sz,3.2*sz],[0,3*sz,0],T.band,{m:tier==="rare"?undefined:"metal",dyn:true});
+  for(const x of[-1.4,1.4])box(g,[.4*sz,2.7*sz,3.15*sz],[x*sz,1.35*sz,0],T.band,{m:"metal",dyn:true});
+  box(g,[1*sz,1.2*sz,.3*sz],[0,1.8*sz,-1.6*sz],tier==="rare"?"lime300":"gold",{m:"neon",dyn:true});
+  if(tier!=="rare")for(const [x,z] of[[-2,-1.5],[2,-1.5],[-2,1.5],[2,1.5]])box(g,[.6,.6,.6],[x*sz,3.3*sz,z*sz],"gold",{m:"metal",dyn:true});
+  if(tier==="legendary"){const col=box(g,[1.6,40,1.6],[0,22,0],"#FFE7A3",{m:"neon",op:.28,dyn:true,shadow:false});g.userData.beam=col;
+    const ring=new THREE.Group();for(let a=0;a<6;a++)box(ring,[.7,.7,.15],[Math.cos(a/6*6.28)*3.2,0,Math.sin(a/6*6.28)*3.2],"gold",{m:"neon",dyn:true});ring.position.y=4.5;g.add(ring);g.userData.ring=ring}
+  return g;
+}
+function spawnChest(tier,fixedKey,pos,hintPos){
+  if(!tier){const r=Math.random();tier=r<.05&&!chests.some(c=>c.tier==="legendary"&&!c.fixed)?"legendary":r<.3?"epic":"rare"}
+  const p=pos||(tier==="legendary"?wildPoint():Math.random()<.7?forestPoint():wildPoint());
+  const g=chestModel(tier);g.position.copy(p);scene.add(g);
+  const T=CHEST_TIERS[tier],ch={id:++chestSeq,tier,pos:p,g,sp:sparkles(g,T.glow,tier==="rare"?3:5),fixed:fixedKey||null,stage:0,attempts:3,lockedUntil:0,puzzles:null,alive:true};
+  if(tier==="legendary"){ch.vals=SYM.map(()=>rint(2,9));ch.clueIdx=[0,1,2].map(()=>rint(0,3));ch.hints=[];
+    for(let k=0;k<3;k++){let hp=hintPos?hintPos[k].clone():null;for(let t=0;t<30&&!hp;t++){const a=Math.random()*6.28,r=rnd(12,24),x=p.x+Math.cos(a)*r,z=p.z+Math.sin(a)*r;if(!fixedKey&&zoneBlocked(x,z,2))continue;hp=V3(x,fixedKey?p.y:groundH(x,z),z)}
+      if(!hp)hp=V3(p.x+8*(k-1),p.y,p.z+10);
+      const hg=new THREE.Group();hg.position.copy(hp);hg.userData.noMerge=true;scene.add(hg);box(hg,[2.4,3.2,1],[0,1.6,0],"white",{tex:"stone",tile:2,dyn:true});box(hg,[1,1,.2],[0,2.2,-.55],"gold",{m:"neon",dyn:true});
+      ch.hints.push({g:hg,pos:hp.clone().setY(hp.y+2),k})}}
+  chests.push(ch);return ch;
+}
+function makePuzzles(ch){
+  if(ch.tier==="rare")return [Math.random()<.5?genRiddle():genSequence(false)];
+  if(ch.tier==="epic")return [genRiddle(),genSymbolMath(),genSequence(true)];
+  return [{kind:"dials"},{kind:"num",q:"",ans:0,legend:true},genSequence(true)];
+}
+function chestInteract(ch){
+  if(!ch.alive)return;
+  if(ch.tier==="legendary"&&!has("decoder")){foxSay("Печатки цієї скрині не зрушити руками. Потрібен Декодер печаток з крамниці «Компас».");sfx("error");return}
+  if(Date.now()<ch.lockedUntil){toast("Замок заклинило. Спробуй через "+Math.ceil((ch.lockedUntil-Date.now())/1000)+" с",COL.orange);return}
+  if(!ch.puzzles)ch.puzzles=makePuzzles(ch);
+  sfx("chest_"+ch.tier);openChestUI(ch);
+}
+function chestAnswer(ch,ok){
+  if(ok){ch.stage++;sfx("ok");if(ch.stage>=ch.puzzles.length){finishChest(ch);return true}openChestUI(ch);return true}
+  ch.attempts--;sfx("error");
+  if(ch.attempts<=0){ch.lockedUntil=Date.now()+30000;ch.attempts=3;ch.stage=0;ch.puzzles=null;closeModal();toast("Замок заклинило на 30 секунд, а механізм скинувся.",COL.stamp);return false}
+  return false;
+}
+function finishChest(ch){
+  const T=CHEST_TIERS[ch.tier];closeModal();removeSpot(chests,ch);sfx("open_"+ch.tier);
+  const m=rint(T.money[0],T.money[1]);earn(m);toast("+"+money(m)+" зі скрині",COL.orange);
+  let id=roll(luck()+T.luck,T.legendary);if(ch.tier==="legendary"&&RAR[ARTBY[id].r].o<4)id=Math.random()<.5?"sundisc":"crystal";
+  if(ch.fixed){S.fixed[ch.fixed]=true;if(ch.fixed==="crypt")id="crown"}
+  addArtifact(id);
+  if(ch.tier!=="rare"&&Math.random()<.5){const it=Math.random()<.5?"medkit":"lockpicks";S.inv[it]=(S.inv[it]||0)+1;toast("Також у скрині: "+ITEMBY[it].name)}
+  foxSay(ch.tier==="legendary"?"ЛЕГЕНДАРНА СКРИНЯ ВІДКРИТА! Такого скарбу ще ніхто не бачив!":ch.tier==="epic"?"Епічно! Три замки — і все наше!":"Правильно! Замок клацнув!");
+  renderHUD();save();
+}
+
+/* ================= Здоров'я та пастки ================= */
+let hurtCD=0,regenT=0;
+function damage(n,respawn,msg){
+  if(hurtCD>0)return;hurtCD=1.4;S.hp=Math.max(0,S.hp-n);sfx("hurt");$("fade").classList.add("red","on");setTimeout(()=>$("fade").classList.remove("on"),120);setTimeout(()=>$("fade").classList.remove("red"),500);
+  if(S.hp<=0){foxSay("Ой! Тобі треба відпочити. Повертаємось додому.");S.hp=MAX_HP;teleport(W.home,true)}
+  else{if(msg)foxSay(msg+(S.hp<=2&&has("medkit")?" Натисни Q, щоб скористатися аптечкою.":""));if(respawn)setTimeout(()=>{player.pos.copy(respawn);player.pos.y=Math.max(respawn.y,groundH(respawn.x,respawn.z));player.vel.set(0,0,0)},250)}
+  renderHUD();save();
+}
+function useMedkit(){if(!has("medkit")){toast("Немає аптечки. Купи в крамниці «Компас».",COL.orange);return}if(S.hp>=MAX_HP){toast("Здоров'я вже повне.");return}S.inv.medkit--;S.hp=MAX_HP;sfx("heal");toast("Здоров'я відновлено");renderHUD();save()}
+const fallingRocks=[];
+function checkTraps(){
+  for(const t of W.traps){if(player.pos.x>t.x0&&player.pos.x<t.x1&&player.pos.z>t.z0&&player.pos.z<t.z1&&player.pos.y<t.y){
+    if(hurtCD<=0&&t.respawn===CANYON_RESPAWN){const rock=box(scene,[3,3,3],[(t.x0+t.x1)/2,24,(t.z0+t.z1)/2],"rockDark",{dyn:true});fallingRocks.push({m:rock,v:0,life:2})}
+    damage(1,t.respawn,t.msg);break}}
+  for(const s of W.spikes){if(s.up&&player.pos.x>s.x0&&player.pos.x<s.x1&&player.pos.z>s.z0&&player.pos.z<s.z1&&player.pos.y<2.2)damage(1,V3(364,0,-290),"Шипи! Вони висуваються з підлоги по черзі — дочекайся, поки сховаються.")}
+}
+
+/* ================= Каньйон ================= */
+function refreshTiles(){W.tiles.forEach((t,i)=>t.sign.userData.setText(SYM[S.tiles[i]]))}
+const tilesSolved=()=>S.tiles.every((v,i)=>v===S.solution[i]);
+const doors=[];
+function slideOpen(mesh,dy,instant){const cl=mesh.userData.col;if(cl)cl.on=false;if(instant){mesh.position.y+=dy;mesh.visible=false;return}doors.push({m:mesh,from:mesh.position.y,dy,t:0});sfx("door")}
+function setSocketLit(){W.socket.material=mat("lime300","neon")}
+function rotateTile(i){
+  if(S.secrets.canyon){toast("Двері вже відчинені!");return}
+  S.tiles[i]=(S.tiles[i]+1)%4;refreshTiles();sfx("click");W.tiles[i].mesh.material=mat("lime300");setTimeout(()=>W.tiles[i].mesh.material=mat("rock"),350);
+  if(tilesSolved()){if(S.socket){S.secrets.canyon=true;slideOpen(W.door,-9);toast("Таємницю розгадано! Двері відчинено.",COL.orange);earn(500);checkQuest()}
+    else foxSay("Плити стали на місце… але гніздо внизу ще порожнє!")}
+  save();
+}
+function useSocket(){
+  if(S.socket){toast("Камінь уже в гнізді.");return}
+  if((S.artifacts.stone||0)<1){foxSay("Сюди підійде якийсь камінь із вирізами… Пошукай Дивний камінь!");return}
+  S.artifacts.stone--;if(placedCount("stone")>S.artifacts.stone){const k=S.placed.lastIndexOf("stone");if(k>=0)S.placed[k]="";updatePedestals()}
+  S.socket=true;setSocketLit();sfx("ok");foxSay("Камінь ідеально ліг у гніздо! Тепер плити… Шукай камені-підказки з символами!");
+  if(tilesSolved()){S.secrets.canyon=true;slideOpen(W.door,-9)}
+  checkQuest();renderHUD();save();
+}
+function openAncient(){
+  if(!S.secrets.key){S.secrets.key=true;earn(5000);addArtifact("key");foxSay("КЛЮЧ ПРЕДКІВ! Він відчиняє місця, яких немає на мапі. Що ж він відчиняє?..");toast("+5 000 грн",COL.orange);S.lastAncient=Date.now()}
+  else if(Date.now()-S.lastAncient>=600000){S.lastAncient=Date.now();addArtifact(roll(luck()+3,5))}
+  else toast("Скриня наповниться через "+Math.ceil((600000-(Date.now()-S.lastAncient))/60000)+" хв");
+  renderHUD();save();
+}
+
+/* ================= Затоплений храм: промінь і дзеркала ================= */
+// 0 — дзеркало опущене (світло проходить), 1 — «/», 2 — «\». Напрямки: 0 північ(−z), 1 схід, 2 південь, 3 захід
+const REFL={1:{1:0,0:1,3:2,2:3},2:{1:2,2:1,3:0,0:3}};
+function traceBeam(){
+  const T=TEMPLE,pts=[W.sourcePos.clone()];let i=-1,j=2,dir=1,ok=false;
+  for(let s=0;s<20;s++){i+=dir===1?1:dir===3?-1:0;j+=dir===2?1:dir===0?-1:0;
+    if(i<0||i>3||j<0||j>3){if(dir===0&&i===3&&j<0)ok=true;const x=T.gx+clamp(i,-.6,3.6)*T.cell,z=T.gz+clamp(j,-.6,3.6)*T.cell;pts.push(V3(ok?-420:x,T.y+4.6,ok?-33.5:z));break}
+    const m=W.mirrors.find(q=>q.i===i&&q.j===j);if(m){const st=S.temple.mirrors[W.mirrors.indexOf(m)];if(st>0){pts.push(V3(T.gx+i*T.cell,T.y+4.6,T.gz+j*T.cell));dir=REFL[st][dir]}}}
+  return {pts,ok};
+}
+function drawBeam(){
+  W.beam.clear();const {pts,ok}=traceBeam();
+  for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1],len=a.distanceTo(b);if(len<.01)continue;const m=box(W.beam,[.35,.35,len],[(a.x+b.x)/2,a.y,(a.z+b.z)/2],"#FFE7A3",{m:"neon",dyn:true,shadow:false});m.lookAt(b)}
+  W.mirrors.forEach((m,k)=>{const st=S.temple.mirrors[k];m.g.rotation.set(st===0?Math.PI/2:0,st===1?45*DEG:st===2?-45*DEG:0,0)});
+  W.crystal.material=ok||S.temple.solved?mat("#9FE3D8","neon"):mat("#9FE3D8","glass");
+  return ok;
+}
+function rotateMirror(k){
+  if(S.temple.solved){toast("Промінь уже досяг кришталю.");return}
+  S.temple.mirrors[k]=(S.temple.mirrors[k]+1)%3;sfx("click");
+  if(drawBeam()){S.temple.solved=true;slideOpen(W.sanctumDoor,-10.5);earn(1500);toast("Кришталь засяяв! Святилище відчинено. +1 500 грн",COL.orange);foxSay("Промінь дійшов до кришталю! Святилище на півночі храму відчинене.");checkQuest()}
+  save();
+}
+function pressLooseBrick(){if(S.temple.secret)return;S.temple.secret=true;slideOpen(W.secretPanel,-8);W.looseBrick.visible=false;foxSay("Таємний прохід! Сова дивилася саме сюди.");if(!S.fixed.temple)spawnChest("epic","temple",W.secretChestPos);save()}
+
+/* ================= Темна гробниця ================= */
+const GLYPH_SYM=["☾","☀","★","◆"];
+function touchGlyph(k){
+  if(S.crypt.solved){toast("Гліфи вже мовчать.");return}
+  const want=S.crypt.order[S.crypt.progress];
+  if(k===want){S.crypt.progress++;W.glyphs[k].mesh.material=mat("#7FD3FF","neon");sfx("note",[523,587,659,784][S.crypt.progress-1]);
+    if(S.crypt.progress>=4){S.crypt.solved=true;slideOpen(W.tombDoor,-11);earn(2000);toast("Гробницю відчинено! +2 000 грн",COL.orange);foxSay("Двері гробниці на сході зали відчинилися!");checkQuest()}}
+  else{S.crypt.progress=0;W.glyphs.forEach(g=>g.mesh.material=mat("cryptDark"));sfx("error");foxSay(has("flashlight")&&S.flashlightOn?"Не той порядок. Придивися до розписів на стінах — там римські цифри.":"Не той порядок… Тут темно. Може, на стінах щось намальовано? Без ліхтарика не розгледіти.")}
+  save();
+}
+function useRope(){if(!has("rope")){foxSay("Уступ надто високо. Потрібна мотузка з гаком із крамниці «Компас».");sfx("error");return}S.crypt.rope=true;W.rope.visible=true;teleport(W.ledgeTop)}
+function breakCrack(){if(!has("metaldetector")){foxSay("Стіна якась дивна… Металошукач підказав би, чи є за нею порожнина.");return}S.crypt.crack=true;W.crackWall.visible=false;W.crackWall.userData.col.on=false;sfx("break");foxSay("Порожнина! За тріснутою стіною — схованка.");save()}
+
+/* ================= Обсерваторія: мелодія кристалів ================= */
+const SIMON={seq:[],input:0,round:0,playing:false};
+const SIMON_LEN=[3,5,7];
+function startSimon(){if(S.obs.solved){toast("Механізм уже розгадано.");return}if(SIMON.playing)return;SIMON.round=0;newSimonRound()}
+function newSimonRound(){SIMON.seq=[];for(let i=0;i<SIMON_LEN[SIMON.round];i++)SIMON.seq.push(rint(0,4));SIMON.input=0;playSimon()}
+function flashPillar(i,ms=420){const p=W.pillars[i];p.mesh.material=mat(p.col,"neon");sfx("note",p.note);setTimeout(()=>p.mesh.material=mat(p.col),ms)}
+function playSimon(){SIMON.playing=true;toast("Раунд "+(SIMON.round+1)+" з 3: слухай і запам'ятовуй");let k=0;const step=()=>{if(k>=SIMON.seq.length){SIMON.playing=false;toast("Тепер повтори: торкайся кристалів у тому ж порядку");return}flashPillar(SIMON.seq[k]);k++;setTimeout(step,780)};setTimeout(step,700)}
+function touchPillar(i){
+  if(S.obs.solved){flashPillar(i);return}
+  if(SIMON.playing||!SIMON.seq.length){flashPillar(i);if(!SIMON.seq.length)toast("Спершу натисни «Запуск» у центрі.");return}
+  flashPillar(i,300);
+  if(SIMON.seq[SIMON.input]!==i){sfx("error");SIMON.seq=[];foxSay("Збився! Механізм скинувся. Спробуй знову з першого раунду.");return}
+  SIMON.input++;if(SIMON.input>=SIMON.seq.length){SIMON.round++;if(SIMON.round>=3){S.obs.solved=true;SIMON.seq=[];slideOpen(W.archiveDoor,-8.5);earn(1200);toast("Мелодію відтворено! Архів відчинено. +1 200 грн",COL.orange);foxSay("Архів біля обсерваторії відчинився!");checkQuest();save()}else{sfx("ok");setTimeout(newSimonRound,900)}}
+}
+
+/* ================= Предмети ================= */
+function buyItem(id){
+  const it=ITEMBY[id];if(it.type==="tool"&&has(id)){toast("Уже є в інвентарі");return}
+  if(!spend(it.price)){toast("Бракує грошей: потрібно "+money(it.price),COL.orange);sfx("error");return}
+  S.inv[id]=(S.inv[id]||0)+1;S.itemBuys++;sfx("buy");toast("Куплено: "+it.name,COL.orange);
+  if(id==="flashlight"){S.flashlightOn=true;foxSay("Ліхтарик! Вмикай і вимикай клавішею F.")}
+  if(id==="metaldetector")foxSay("Металошукач пищатиме біля схованок, яких не видно оком.");
+  checkQuest();renderHUD();save();
+}
+function toggleFlashlight(){if(!has("flashlight")){toast("Немає ліхтарика. Купи в крамниці «Компас».",COL.orange);return}S.flashlightOn=!S.flashlightOn;sfx("click");toast("Ліхтарик "+(S.flashlightOn?"увімкнено":"вимкнено"))}
+
+/* ================= Події ================= */
+function startEvent(ev){
+  currentEvent=ev;eventEndsAt=performance.now()/1000+EVENT_LEN;
+  toast("Подія: "+ev.name+" — "+ev.desc,COL.orange);foxSay(ev.name+"! "+ev.desc[0].toUpperCase()+ev.desc.slice(1)+"!");sfx("event");
+  if(ev.id==="quake"){shake=2.5;for(let i=0;i<10;i++)spawnDig()}
+  if(ev.id==="chestrain")for(let i=0;i<4;i++)spawnChest();
+  if(ev.id==="tourists"&&BUS.state==="away")BUS.timer=Math.min(BUS.timer,3);
+  renderHUD();
+}
+function endEvent(){currentEvent=null;nextEventAt=performance.now()/1000+EVENT_EVERY;renderHUD()}
+
+/* ================= Телепорт додому ================= */
+let tpBusy=false;
+function freeSpot(p){const tmp=player.pos.clone();for(let r=0;r<12;r+=1.5)for(let a=0;a<6.28;a+=.8){player.pos.set(p.x+Math.cos(a)*r,p.y,p.z+Math.sin(a)*r);if(!colliders.some(cl=>cl.on&&overl(cl.box))){const q=player.pos.clone();player.pos.copy(tmp);return q}}player.pos.copy(tmp);return p.clone()}
+function teleport(p,home){
+  if(tpBusy)return;tpBusy=true;sfx("teleport");$("fade").classList.add("on");
+  setTimeout(()=>{const q=freeSpot(p);player.pos.copy(q);player.vel.set(0,0,0);player.modelY=q.y;companion.pos.copy(q).add(V3(4,0,3));camFollow.copy(q);if(home)camYaw=Math.PI;
+    setTimeout(()=>{$("fade").classList.remove("on");tpBusy=false},120)},380);
+}
+function goHome(){if(modalOpen)closeModal();teleport(W.home,true);toast("Ти вдома, на базі");}
+
+/* ================= Гравець: рух, камера, Shift Lock ================= */
+const player={pos:new THREE.Vector3(),vel:new THREE.Vector3(),onGround:true,face:0,model:null,walk:0,modelY:0,coyote:0,jumpBuf:0,runBlend:0,support:"ground"};
+const PR=1.1,PH=7.2,STEP=1.4;
+const WALK=16,RUN=30,ACC=60,DEC=75,AIR=.35,GRAV=95,JUMP=36;
+const keys={};let runToggle=false;
+let camYaw=Math.PI,camPitch=.46,camDist=24,camDistCur=24,shake=0,shiftLock=false;
+const camFollow=new THREE.Vector3();
+const stick={x:0,y:0,id:null};
+const pBox=new THREE.Box3(),tmpV=new THREE.Vector3();
+function playerBox(){pBox.min.set(player.pos.x-PR,player.pos.y,player.pos.z-PR);pBox.max.set(player.pos.x+PR,player.pos.y+PH,player.pos.z+PR);return pBox}
+function overl(b){const p=playerBox();return p.min.x<b.max.x-1e-4&&p.max.x>b.min.x+1e-4&&p.min.y<b.max.y-1e-3&&p.max.y>b.min.y+1e-3&&p.min.z<b.max.z-1e-4&&p.max.z>b.min.z+1e-4}
+const angDiff=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
+let near=[];
+function physics(dt){
+  // ввід відносно камери
+  let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+stick.x;
+  let iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+stick.y;
+  let mag=Math.hypot(ix,iz);if(mag>1){ix/=mag;iz/=mag;mag=1}
+  const running=(keys.ShiftLeft||keys.ShiftRight||runToggle)&&mag>.1;
+  player.runBlend+=((running?1:0)-player.runBlend)*Math.min(1,dt*4);
+  const sp=(WALK+(RUN-WALK)*player.runBlend)*mag;
+  const fx=-Math.sin(camYaw),fz=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);
+  let tx=(rx*ix-fx*iz),tz=(rz*ix-fz*iz);const tl=Math.hypot(tx,tz);if(tl>0){tx=tx/tl*sp;tz=tz/tl*sp}
+  // плавне прискорення та гальмування
+  const cur=Math.hypot(player.vel.x,player.vel.z),want=Math.hypot(tx,tz);
+  let a=(want>cur?ACC:DEC)*(player.onGround?1:AIR);const dx=tx-player.vel.x,dz=tz-player.vel.z,dl=Math.hypot(dx,dz);
+  if(dl>0){const st=Math.min(dl,a*dt);player.vel.x+=dx/dl*st;player.vel.z+=dz/dl*st}
+  const hs=Math.hypot(player.vel.x,player.vel.z);
+  // поворот персонажа
+  let goal=player.face;if(shiftLock)goal=camYaw;else if(hs>1.2)goal=Math.atan2(-player.vel.x,-player.vel.z);
+  player.face+=angDiff(player.face,goal)*Math.min(1,dt*(shiftLock?16:10));
+  player.walk+=dt*(hs*.34);
+  // стрибок: «койот»-час і буфер
+  player.coyote=player.onGround?.12:Math.max(0,player.coyote-dt);player.jumpBuf=Math.max(0,player.jumpBuf-dt);
+  if(player.jumpBuf>0&&player.coyote>0){player.vel.y=JUMP;player.onGround=false;player.coyote=0;player.jumpBuf=0;sfx("jump")}
+  player.vel.y-=GRAV*dt;if(player.vel.y<-120)player.vel.y=-120;
+  near=colliders.filter(cl=>cl.on&&cl.box.max.x>player.pos.x-30&&cl.box.min.x<player.pos.x+30&&cl.box.max.z>player.pos.z-30&&cl.box.min.z<player.pos.z+30);
+  const ox=player.pos.x,oz=player.pos.z,gOld=groundH(ox,oz);
+  for(const ax of["x","z"]){
+    player.pos[ax]+=player.vel[ax]*dt;
+    for(const cl of near){if(!overl(cl.box))continue;const b=cl.box;
+      if(b.max.y-player.pos.y<=STEP&&player.onGround){const oy=player.pos.y;player.pos.y=b.max.y;if(!near.some(o=>o!==cl&&overl(o.box)))continue;player.pos.y=oy}
+      if(player.vel[ax]>0)player.pos[ax]=b.min[ax]-PR-1e-3;else player.pos[ax]=b.max[ax]+PR+1e-3;player.vel[ax]=0;
+    }
+  }
+  // надто крутий схил — не пускає
+  const gNew=groundH(player.pos.x,player.pos.z),moved=Math.hypot(player.pos.x-ox,player.pos.z-oz);
+  if(moved>.001&&player.pos.y<=gOld+.3&&(gNew-gOld)/moved>1.25){player.pos.x=ox;player.pos.z=oz}
+  const prevY=player.pos.y,wasGround=player.onGround;player.pos.y+=player.vel.y*dt;player.onGround=false;let onBox=false;
+  for(const cl of near){if(!overl(cl.box))continue;const b=cl.box;
+    if(player.vel.y<=0&&prevY>=b.max.y-STEP){player.pos.y=b.max.y;player.vel.y=0;player.onGround=true;onBox=true}
+    else if(player.vel.y>0){player.pos.y=b.min.y-PH-1e-3;player.vel.y=0}}
+  const g=groundH(player.pos.x,player.pos.z);
+  if(player.pos.y<=g){player.pos.y=g;player.vel.y=Math.max(0,player.vel.y);player.onGround=true}
+  else if(!onBox&&wasGround&&player.vel.y<=0&&player.pos.y-g<1.6){
+    // перевіряємо, чи під ногами немає опори-коробки (щоб не «прилипати» крізь платформи)
+    let sup=false;for(const cl of near){const b=cl.box;if(player.pos.x>b.min.x-PR&&player.pos.x<b.max.x+PR&&player.pos.z>b.min.z-PR&&player.pos.z<b.max.z+PR&&Math.abs(b.max.y-prevY)<.05){sup=true;break}}
+    if(!sup){player.pos.y=g;player.vel.y=0;player.onGround=true}}
+  if(player.pos.y<-40){player.pos.copy(W.home)}
+  if(hurtCD>0)hurtCD-=dt;
+  checkTraps();
+}
+const ray=new THREE.Ray();
+function updateCamera(dt){
+  camFollow.lerp(player.pos,Math.min(1,dt*14));
+  const target=tmpV.set(camFollow.x,player.modelY+5.6,camFollow.z);
+  if(shiftLock){target.x+=Math.cos(camYaw)*2.4;target.z-=Math.sin(camYaw)*2.4}
+  const dir=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
+  let d=camDist;ray.set(target,dir);const hit=new THREE.Vector3();
+  for(const cl of near){if(cl.box.containsPoint(target))continue;if(ray.intersectBox(cl.box,hit)){const h=hit.distanceTo(target);if(h<d)d=Math.max(3.5,h-.8)}}
+  // камера не опускається під рельєф
+  camDistCur+=(d-camDistCur)*Math.min(1,dt*(d<camDistCur?18:4));
+  camera.position.copy(target).addScaledVector(dir,camDistCur);
+  const gh=groundH(camera.position.x,camera.position.z)+1.5;if(camera.position.y<gh)camera.position.y=gh;
+  if(shake>0){shake-=dt;const a=Math.min(1,shake)*.9;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a}
+  camera.lookAt(target);
+  sun.position.set(player.pos.x-130,player.pos.y+220,player.pos.z+90);sun.target.position.set(player.pos.x,player.pos.y,player.pos.z);
+}
+function animatePlayer(dt,t){
+  const pm=player.model;player.modelY+=(player.pos.y-player.modelY)*Math.min(1,dt*20);if(Math.abs(player.pos.y-player.modelY)>6)player.modelY=player.pos.y;
+  pm.position.set(player.pos.x,player.modelY,player.pos.z);pm.rotation.y=player.face;
+  const hs=Math.hypot(player.vel.x,player.vel.z),amp=Math.min(1,hs/10)*(.55+.4*player.runBlend),f=1.6+player.runBlend*.5;
+  const sw=Math.sin(player.walk*f)*amp,u=pm.userData;
+  u.legL.rotation.x=sw;u.legR.rotation.x=-sw;u.armL.rotation.x=-sw*.9;u.armR.rotation.x=sw*.9;
+  u.body.rotation.x=-.12*player.runBlend*Math.min(1,hs/20);u.body.position.y=Math.abs(Math.sin(player.walk*f))*.18*amp+(hs<1?Math.sin(t*2)*.04:0);
+  if(!player.onGround){u.legL.rotation.x=-.5;u.legR.rotation.x=.3;u.armL.rotation.x=-2.4;u.armR.rotation.x=-2.4}
+}
+function setShiftLock(on,silent){
+  shiftLock=on;$("slock").classList.toggle("on",on);$("slock").setAttribute("aria-pressed",String(on));$("crosshair").hidden=!on;
+  if(on){try{const r=canvas.requestPointerLock&&canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}if(!silent){toast("Shift Lock увімкнено · R щоб вимкнути");sfx("click")}}
+  else if(document.pointerLockElement===canvas)document.exitPointerLock();
+}
+document.addEventListener("pointerlockchange",()=>{if(document.pointerLockElement!==canvas&&shiftLock&&lockWasOn&&!modalOpen)setShiftLock(false);lockWasOn=document.pointerLockElement===canvas});
+let lockWasOn=false;
+
+/* ================= Взаємодії ================= */
+function interactables(){
+  const L=[],pp=player.pos;const nearP=(p,r)=>Math.abs(p.x-pp.x)<r+4&&Math.abs(p.z-pp.z)<r+4;
+  for(const s of digSpots){if(s.hidden&&!(has("metaldetector")&&s.g.visible))continue;if(nearP(s.pos,7))L.push({pos:s.pos.clone().setY(s.pos.y+2),r:7,text:s.hidden?"Копати схованку":"Копати",obj:s.hidden?"Металошукач пищить!":"Підозріле місце",hold:digDuration(),run:()=>dig(s)})}
+  for(const ch of chests){if(nearP(ch.pos,8))L.push({pos:ch.pos.clone().setY(ch.pos.y+3),r:8,text:"Розгадати замок",obj:CHEST_TIERS[ch.tier].name,hold:.3,run:()=>chestInteract(ch)});
+    if(ch.hints)ch.hints.forEach(h=>{if(nearP(h.pos,6))L.push({pos:h.pos,r:6,text:"Роздивитися знаки",obj:"Камінь з рунами",hold:.6,run:()=>readHint(ch,h)})})}
+  if(nearP(W.shopCounter,8))L.push({pos:W.shopCounter,r:9,text:"Відкрити магазин",obj:"Крамниця «Компас»",hold:0,run:openStore});
+  W.tables.forEach((w,i)=>{if(nearP(w.pos,6)){const t=S.tables[i];L.push({pos:w.pos,r:6.5,text:i>=S.upgrades.lab?"Стіл не куплено":t.busy?"Перевірити дослідження":"Покласти реліквію",obj:"Дослідницький стіл "+(i+1)+" · у рюкзаку "+S.unknown,hold:t.busy||i>=S.upgrades.lab?0:.8,run:()=>tableAction(i)})}});
+  W.pedestals.forEach((p,k)=>{if(nearP(p.pos,6))L.push({pos:p.pos,r:6.5,text:k<S.upgrades.shelves?"Виставити артефакт":"Вітрина не куплена",obj:"Вітрина "+(k+1),hold:0,run:()=>k<S.upgrades.shelves?placeBest(k):toast("Купи ще одну вітрину в «Покращеннях»!",COL.orange)})});
+  // каньйон
+  W.tiles.forEach((t,i)=>{if(nearP(t.pos,12))L.push({pos:t.pos,r:12,text:"Повернути плиту",obj:"Плита "+(i+1),hold:0,run:()=>rotateTile(i)})});
+  if(nearP(W.socketPos,8))L.push({pos:W.socketPos,r:8,text:"Вставити Дивний камінь",obj:"Гніздо",hold:.4,run:useSocket});
+  if(S.secrets.canyon&&pp.x>W.roomMinX&&nearP(W.ancient,8))L.push({pos:W.ancient,r:8,text:"Відкрити скриню",obj:"Скриня предків",hold:1,run:openAncient});
+  // храм
+  W.mirrors.forEach((m,k)=>{if(nearP(m.pos,6))L.push({pos:m.pos,r:6,text:"Повернути дзеркало",obj:["Опущене","Нахил «/»","Нахил «\\»"][S.temple.mirrors[k]],hold:0,run:()=>rotateMirror(k)})});
+  if(nearP(W.templeHint,7))L.push({pos:W.templeHint,r:7,text:"Прочитати напис",obj:"Табличка храму",hold:0,run:()=>showLore("temple")});
+  if(!S.temple.secret&&nearP(V3(-438,4,9),5))L.push({pos:V3(-438,5,9),r:5,text:"Натиснути на камінь",obj:"Камінь іншого кольору",hold:.6,run:pressLooseBrick});
+  if(S.temple.solved&&!S.temple.taken&&nearP(W.altarPos,7))L.push({pos:W.altarPos,r:7,text:"Взяти Дзеркало жриці",obj:"Вівтар святилища",hold:.8,run:()=>{S.temple.taken=true;W.altarHolder.clear();addArtifact("mirror")}});
+  // гробниця
+  W.glyphs.forEach((g,k)=>{if(nearP(g.pos,6))L.push({pos:g.pos,r:6,text:"Торкнутися гліфа "+g.sym,obj:"Гліф",hold:0,run:()=>touchGlyph(k)})});
+  if(nearP(W.ledgeBase,6)&&pp.y<4)L.push({pos:W.ledgeBase.clone().setY(4),r:6,text:S.crypt.rope?"Піднятися мотузкою":"Закинути мотузку",obj:"Високий уступ",hold:.6,run:useRope});
+  if(!S.crypt.ledge&&nearP(W.ledgeItem.position,6)&&pp.y>8)L.push({pos:W.ledgeItem.position,r:6,text:"Забрати знахідку",obj:"Схованка на уступі",hold:.6,run:()=>{S.crypt.ledge=true;W.ledgeItem.clear();earn(800);addArtifact("scarab");toast("+800 грн",COL.orange)}});
+  if(!S.crypt.crack&&nearP(V3(404,3,-287),6))L.push({pos:V3(404,4,-287),r:6,text:has("metaldetector")?"Розбити тріснуту стіну":"Оглянути стіну",obj:has("metaldetector")?"За стіною порожнина":"Тріснута кладка",hold:has("metaldetector")?1.2:0,run:breakCrack});
+  if(S.crypt.crack&&!S.crypt.crackLoot&&nearP(W.crackRoom,6))L.push({pos:W.crackRoom.clone().setY(3),r:6,text:"Забрати скарб",obj:"Таємна схованка",hold:.6,run:()=>{S.crypt.crackLoot=true;W.crackLootG&&W.crackLootG.clear();earn(2500);toast("+2 500 грн",COL.orange);addArtifact(roll(luck()+4,3))}});
+  if(S.crypt.solved&&!S.crypt.taken&&nearP(W.tombAltar,7))L.push({pos:W.tombAltar,r:7,text:"Взяти Маску Тіні",obj:"Вівтар гробниці",hold:.8,run:()=>{S.crypt.taken=true;W.tombHolder.clear();addArtifact("shadowmask")}});
+  // обсерваторія
+  if(nearP(W.obsStart,6))L.push({pos:W.obsStart,r:6,text:S.obs.solved?"Механізм розгадано":"Запуск механізму",obj:"Армілярна сфера",hold:0,run:startSimon});
+  W.pillars.forEach((p,i)=>{if(nearP(p.pos,5.5))L.push({pos:p.pos,r:5.5,text:"Торкнутися кристала",obj:"Кристал "+(i+1),hold:0,run:()=>touchPillar(i)})});
+  if(S.obs.solved&&!S.obs.taken&&nearP(W.archivePos,6))L.push({pos:W.archivePos,r:6,text:"Взяти Зоряну астролябію",obj:"Архів",hold:.8,run:()=>{S.obs.taken=true;W.archiveHolder.clear();addArtifact("astrolabe")}});
+  return L;
+}
+let target=null,holdT=0,needRelease=false,touchAct=false;
+const actHeld=()=>!!(keys.KeyE||touchAct);
+function updateInteract(dt){
+  const c0=tmpV.set(player.pos.x,player.pos.y+3,player.pos.z);let best=null,bd=1e9;
+  if(!modalOpen&&!tpBusy)for(const it of interactables()){const d=it.pos.distanceTo(c0);if(d<it.r&&d<bd){bd=d;best=it}}
+  const pr=$("prompt");
+  if(!best){pr.hidden=true;target=null;holdT=0;return}
+  if(!target||target.text!==best.text||!target.pos.equals(best.pos))holdT=0;
+  target=best;$("pText").textContent=best.text;$("pObj").textContent=best.obj;
+  if(!actHeld())needRelease=false;
+  if(actHeld()&&!needRelease){holdT+=dt;if(holdT>=best.hold){holdT=0;needRelease=true;best.run()}}else holdT=0;
+  const f=best.hold>0?Math.min(1,holdT/best.hold):0;$("pRing").setAttribute("stroke-dasharray",(f*125.7).toFixed(1)+" 200");
+  const v=best.pos.clone().add(V3(0,3,0)).project(camera);
+  if(v.z>1){pr.hidden=true;return}
+  pr.hidden=false;pr.style.left=((v.x+1)/2*innerWidth)+"px";pr.style.top=((1-v.y)/2*innerHeight)+"px";
+}
+function updateLabels(){
+  for(const L of labels){if(L.off){L.el.style.display="none";continue}const d=L.pos.distanceTo(camera.position);const v=L.pos.clone().project(camera);
+    if(d>L.max||v.z>1||Math.abs(v.x)>1.2||Math.abs(v.y)>1.2){L.el.style.display="none";continue}
+    L.el.style.display="";L.el.style.left=((v.x+1)/2*innerWidth)+"px";L.el.style.top=((1-v.y)/2*innerHeight)+"px";if(!L.el.classList.contains("cash"))L.el.style.opacity=Math.min(1,(L.max-d)/12)}
+}
+
+/* ================= Світло: ніч, темрява гробниці, ліхтарик ================= */
+const flashlight=new THREE.SpotLight(0xfff2d0,0,48,Math.PI/6,.45,1.2);scene.add(flashlight);scene.add(flashlight.target);
+let nightK=0,darkK=0;
+const inCrypt=()=>player.pos.x>CRYPT.x0&&player.pos.x<CRYPT.x1&&player.pos.z>CRYPT.z0&&player.pos.z<CRYPT.z1&&player.pos.y<14;
+function updateLighting(dt,t){
+  const night=currentEvent&&currentEvent.id==="starnight"?1:0,dark=inCrypt()?1:0;
+  nightK+=(night-nightK)*Math.min(1,dt*1.2);darkK+=(dark-darkK)*Math.min(1,dt*2.5);
+  const dimSky=Math.max(nightK*.75,darkK*.92);
+  scene.background.copy(SKY_DAY).lerp(SKY_NIGHT,nightK).lerp(SKY_DARK,darkK);
+  scene.fog.color.copy(FOG_DAY).lerp(SKY_NIGHT,nightK).lerp(SKY_DARK,darkK);scene.fog.near=260-200*darkK;scene.fog.far=1250-1150*darkK;
+  hemi.intensity=.9-.55*nightK-.82*darkK;sun.intensity=.9-.7*nightK-.88*darkK;
+  const skyTint=1-dimSky;W.sky.material.color.setScalar(skyTint*.95+.05);W.mountains.children.forEach(m=>m.material.color.setScalar(1-dimSky*.8));
+  W.stars.material.opacity=nightK*(1-darkK);
+  const flOn=has("flashlight")&&S.flashlightOn;flashlight.intensity=flOn?(1.4+darkK*1.4+nightK*.6):0;
+  const dir=new THREE.Vector3(-Math.sin(player.face),-.18,-Math.cos(player.face));flashlight.position.set(player.pos.x,player.modelY+5.4,player.pos.z);flashlight.target.position.copy(flashlight.position).addScaledVector(dir,10);
+  W.murals.forEach(g=>g.visible=flOn);
+  W.cryptRoof.visible=!inCrypt();
+  for(const r of W.roofs){if(r.g===W.cryptRoof)continue;const inside=player.pos.x>r.x0&&player.pos.x<r.x1&&player.pos.z>r.z0&&player.pos.z<r.z1&&player.pos.y<r.top;r.g.visible=!inside}
+  W.fireLight.intensity=.7+Math.sin(t*13)*.12+Math.sin(t*7)*.1+nightK*.6;
+}
+
+/* ================= Звук (синтез WebAudio, без файлів) ================= */
+let AC=null,muted=false;
+function audioInit(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){AC=null}}
+function tone(f,d,type,vol,when=0,slide){if(!AC||muted)return;const t=AC.currentTime+when,o=AC.createOscillator(),g=AC.createGain();o.type=type||"sine";o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||.12,t+.012);g.gain.exponentialRampToValueAtTime(.0008,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.05)}
+function noise(d,vol,freq,when=0){if(!AC||muted)return;const t=AC.currentTime+when,n=AC.createBufferSource(),b=AC.createBuffer(1,Math.floor(AC.sampleRate*d),AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=(Math.random()*2-1)*(1-i/a.length);
+  n.buffer=b;const f=AC.createBiquadFilter();f.type="bandpass";f.frequency.value=freq||900;const g=AC.createGain();g.gain.value=vol||.2;n.connect(f).connect(g).connect(AC.destination);n.start(t)}
+function sfx(k,arg){if(!AC||muted)return;
+  switch(k){
+  case"dig":noise(.25,.3,500);noise(.2,.2,300,.15);break;
+  case"find":tone(660,.15,"triangle",.12);tone(880,.2,"triangle",.12,.1);break;
+  case"rare":[523,659,784,1047].forEach((f,i)=>tone(f,.3,"triangle",.11,i*.08));break;
+  case"coin":tone(1318,.09,"square",.04);tone(1760,.14,"square",.035,.06);break;
+  case"buy":tone(784,.1,"triangle",.12);tone(1047,.18,"triangle",.12,.08);noise(.08,.08,3000,.02);break;
+  case"place":tone(392,.12,"sine",.14);tone(523,.16,"sine",.12,.07);break;
+  case"error":tone(220,.18,"sawtooth",.07);tone(196,.22,"sawtooth",.07,.12);break;
+  case"ok":tone(587,.12,"triangle",.12);tone(784,.18,"triangle",.12,.09);break;
+  case"click":tone(1200,.04,"square",.05);break;
+  case"jump":tone(300,.12,"sine",.05,0,520);break;
+  case"hurt":tone(180,.25,"sawtooth",.12,0,90);noise(.15,.15,400);break;
+  case"heal":[440,554,659].forEach((f,i)=>tone(f,.25,"sine",.1,i*.07));break;
+  case"door":noise(1.1,.22,180);tone(80,1,"sawtooth",.05,0,60);break;
+  case"break":noise(.6,.4,250);noise(.3,.25,900,.1);break;
+  case"bus":tone(392,.35,"square",.05);tone(330,.45,"square",.05,.35);break;
+  case"teleport":tone(300,.5,"sine",.1,0,1200);noise(.4,.08,2400);break;
+  case"research":[523,659,784,1047,1319].forEach((f,i)=>tone(f,.35,"triangle",.09,i*.07));break;
+  case"quest":tone(659,.15,"triangle",.1);tone(988,.3,"triangle",.1,.12);break;
+  case"event":tone(523,.2,"square",.05);tone(659,.2,"square",.05,.15);tone(784,.35,"square",.05,.3);break;
+  case"note":tone(arg||440,.45,"sine",.16);tone((arg||440)*2,.3,"sine",.04);break;
+  case"beep":tone(1500,.05,"square",.04);break;
+  // скрині: власні звуки для кожного рівня
+  case"chest_rare":tone(440,.12,"triangle",.1);tone(554,.16,"triangle",.1,.08);break;
+  case"chest_epic":[330,415,494].forEach((f,i)=>tone(f,.22,"sawtooth",.05,i*.07));noise(.2,.08,1500);break;
+  case"chest_legendary":[262,330,392,523].forEach(f=>tone(f,1,"sine",.06));noise(.8,.05,4000,.1);break;
+  case"open_rare":tone(523,.15,"triangle",.12);tone(784,.25,"triangle",.12,.1);break;
+  case"open_epic":[392,494,587,784,988].forEach((f,i)=>tone(f,.3,"triangle",.1,i*.08));noise(.4,.1,2500,.2);break;
+  case"open_legendary":[262,330,392,523,659,784,1047].forEach((f,i)=>tone(f,.6,"triangle",.09,i*.09));[523,659,784].forEach(f=>tone(f,1.6,"sine",.06,.7));noise(1.2,.07,5000,.6);break;
+  }}
+
+/* ================= HUD ================= */
+function renderHUD(){
+  $("kVal").innerHTML="<i>₴</i>&nbsp;"+money(S.money);
+  $("rVal").textContent="≈ +"+fmt(ratePerMin())+" грн / хв"+(payMult()>1?"  ·  ×"+String(+payMult().toFixed(2)).replace(".",","):"");
+  $("bagVal").textContent=S.unknown+" / "+capacity()+" реліквій";
+  $("colVal").textContent="Колекція: "+Object.keys(S.discovered).length+" / "+ART.length+" · Відвідувачів: "+fmt(S.visitors);
+  $("qStep").textContent="Завдання "+S.quest+" / "+QUESTS.length;$("qText").textContent=QUESTS[S.quest-1].t;
+  $("hearts").innerHTML=Array.from({length:MAX_HP},(_,i)=>`<svg viewBox="0 0 24 24" fill="${i<S.hp?"#D33A2C":"none"}" stroke="#1E5A2B" stroke-width="2"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>`).join("");
+  $("compass").hidden=!has("compassItem");
+  $("event").hidden=!currentEvent;
+  if(modalKind==="upg")renderUpg();if(modalKind==="reb")renderReb();if(modalKind==="store")renderStore();if(modalKind==="inv")renderInv();
+}
+function renderEventTimer(){if(!currentEvent)return;const left=Math.max(0,Math.ceil(eventEndsAt-performance.now()/1000));$("event").textContent=currentEvent.name.toUpperCase()+" · "+currentEvent.desc+" · "+fmtTime(left)}
+const CARD=[["Пн",0],["Пн-Сх",45],["Сх",90],["Пд-Сх",135],["Пд",180],["Пд-Зх",225],["Зх",270],["Пн-Зх",315]];
+function renderCompass(){
+  if(!has("compassItem"))return;const head=-camYaw;let h="";
+  for(const [n,d] of CARD){const rel=angDiff(head,d*DEG);if(Math.abs(rel)>Math.PI/2)continue;h+=`<span class="${n.length>2?"m":""}" style="left:${50+rel/(Math.PI/2)*50}%">${n}</span>`}
+  const tg=questTarget();if(tg){const b=Math.atan2(tg.x-player.pos.x,-(tg.z-player.pos.z));const rel=angDiff(head,b);const x=clamp(50+rel/(Math.PI/2)*50,2,98);h+=`<i class="goal" style="left:${x}%"></i>`}
+  $("cStrip").innerHTML=h;
+}
+let beepT=0;
+function updateDetectors(dt){
+  const det=$("detector");let txt="";
+  if(has("metaldetector")){let nd=1e9,ns=null;for(const s of digSpots){if(!s.hidden)continue;const d=s.pos.distanceTo(player.pos);s.g.visible=d<26;if(d<nd){nd=d;ns=s}}
+    if(ns&&nd<30){beepT-=dt;if(beepT<=0){sfx("beep");beepT=clamp(nd/14,.12,2)}txt="Металошукач · "+Math.round(nd)+" м"}
+    if(!S.crypt.crack&&inCrypt()&&player.pos.distanceTo(V3(404,0,-287))<14)txt="Металошукач: порожнина за стіною!"}
+  if(has("treasuredetector")&&!txt){let nd=1e9;for(const ch of chests){const d=ch.pos.distanceTo(player.pos);if(d<nd)nd=d}if(nd<1e9)txt="Найближча скриня · "+Math.round(nd)+" м"}
+  det.hidden=!txt;if(txt)det.textContent=txt;
+}
+
+/* ================= Карти ================= */
+const MAPW=620;let relief=null;
+function buildRelief(){
+  const N=300,cv=document.createElement("canvas");cv.width=cv.height=N;const x=cv.getContext("2d"),img=x.createImageData(N,N);
+  const col=(h,s,pw,road)=>{let c=h<2?[200,226,160]:h<12?[176,212,132]:h<30?[140,190,100]:h<70?[110,165,80]:[150,170,140];if(h>120)c=[222,226,210];c=c.map(v=>v*s);if(pw>0)c=c.map((v,i)=>v*(1-pw)+[226,193,138][i]*pw);if(road>0)c=c.map((v,i)=>v*(1-road)+[94,107,87][i]*road);return c};
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const wx=(i/N*2-1)*MAPW,wz=(j/N*2-1)*MAPW,h=groundH(wx,wz),hx=groundH(wx+4,wz),hz=groundH(wx,wz+4);
+    const s=clamp(.82+(-(hx-h)*.06-(hz-h)*.08),.55,1.12);const pw=pathColorW(wx,wz);const cc=col(h,s,pw.path,pw.road);const k=(j*N+i)*4;img.data[k]=cc[0];img.data[k+1]=cc[1];img.data[k+2]=cc[2];img.data[k+3]=255}
+  x.putImageData(img,0,0);
+  const F=LAY.forest,sx=v=>(v/MAPW+1)/2*N;x.fillStyle="rgba(30,90,43,.22)";x.fillRect(sx(F.x1),sx(F.z1),sx(F.x2)-sx(F.x1),sx(F.z2)-sx(F.z1));
+  x.fillStyle="rgba(30,90,43,.75)";for(const [tx,tz] of W.trees){x.beginPath();x.arc(sx(tx),sx(tz),1.5,0,7);x.fill()}
+  relief=cv;
+}
+const PLACES=()=>[
+ {n:"Музей і база",x:0,z:150,c:"#D2601A",ic:"home"},{n:"Лабораторія",x:45,z:143,c:"#1E5A2B",ic:"lab"},{n:"Зупинка",x:LAY.stop.x,z:LAY.stop.z,c:"#B04E12",ic:"bus"},
+ {n:"Крамниця «Компас»",x:-24,z:-8,c:"#D2601A",ic:"shop"},{n:"Площа",x:0,z:0,c:"#173A1D",ic:"dot"},
+ {n:"Піщаний каньйон",x:430,z:0,c:"#B04E12",ic:"dun",done:()=>!!S.secrets.key,diff:"середній"},
+ {n:"Затоплений храм",x:-430,z:-20,c:"#4FA3A0",ic:"dun",done:()=>S.temple.solved,diff:"середній"},
+ {n:"Темна гробниця",x:415,z:-290,c:"#3F3C36",ic:"dun",done:()=>S.crypt.solved,diff:"складний"},
+ {n:"Обсерваторія",x:LAY.obs.x,z:LAY.obs.z,c:"#B8722C",ic:"dun",done:()=>S.obs.solved,diff:"легкий"},
+];
+function drawMapTo(cv,cx,cz,span,big){
+  const x=cv.getContext("2d"),W2=cv.width,H2=cv.height,sc=W2/(span*2),px=v=>(v-cx)*sc+W2/2,pz=v=>(v-cz)*sc+H2/2;
+  x.fillStyle="#EEF4DC";x.fillRect(0,0,W2,H2);
+  if(relief){const N=relief.width,k=N/(MAPW*2);x.drawImage(relief,(cx-span+MAPW)*k,(cz-span+MAPW)*k,span*2*k,span*2*k,0,0,W2,H2)}
+  // будівлі
+  x.fillStyle="rgba(23,58,29,.85)";for(const r of [[-24,24,128,158],[30,60,124,162],[-34,-14,-16,0],[-462,-398,-52,12],[358,472,-322,-258],[452,472,-300,-280]]){x.fillRect(px(r[0]),pz(r[2]),(r[1]-r[0])*sc,(r[3]-r[2])*sc)}
+  x.strokeStyle="#D2601A";x.lineWidth=Math.max(1,sc*1.2);x.strokeRect(px(-64),pz(114),128*sc,78*sc);
+  // скрині (з детектором скарбів)
+  if(has("treasuredetector"))for(const ch of chests){x.fillStyle=CHEST_TIERS[ch.tier].glow;x.strokeStyle="#173A1D";x.lineWidth=2;x.beginPath();x.rect(px(ch.pos.x)-5,pz(ch.pos.z)-5,10,10);x.fill();x.stroke()}
+  if(BUS.state!=="away"){x.fillStyle="#D2601A";x.fillRect(px(BUS.x-10),pz(BUS.lane-3),20*sc,6*sc)}
+  // місця
+  const fs=big?14:Math.max(10,W2/32);x.font=`800 ${fs}px Manrope, sans-serif`;x.textAlign="center";
+  for(const p of PLACES()){const X=px(p.x),Z=pz(p.z);if(X<-20||Z<-20||X>W2+20||Z>H2+20)continue;
+    x.fillStyle=p.c;x.strokeStyle="#FBF8EC";x.lineWidth=3;x.beginPath();if(p.ic==="dun"){x.moveTo(X,Z-9);x.lineTo(X+9,Z+7);x.lineTo(X-9,Z+7);x.closePath()}else x.arc(X,Z,p.ic==="dot"?4:7,0,7);x.fill();x.stroke();
+    if(big||p.ic!=="dot"){const t=p.n+(p.done&&p.done()?" ✓":"");x.lineWidth=4;x.strokeStyle="rgba(251,248,236,.9)";x.strokeText(t,X,Z-13);x.fillStyle="#173A1D";x.fillText(t,X,Z-13)}}
+  // позначка
+  if(S.waypoint){const X=px(S.waypoint[0]),Z=pz(S.waypoint[1]);x.fillStyle="#D33A2C";x.strokeStyle="#FBF8EC";x.lineWidth=3;x.beginPath();x.moveTo(X,Z);x.arc(X,Z-14,8,Math.PI*.8,Math.PI*2.2);x.closePath();x.fill();x.stroke()}
+  // гравець
+  x.save();x.translate(px(player.pos.x),pz(player.pos.z));x.rotate(-player.face);x.fillStyle="#D2601A";x.strokeStyle="#FBF8EC";x.lineWidth=3;x.beginPath();x.moveTo(0,-12);x.lineTo(8,8);x.lineTo(0,4);x.lineTo(-8,8);x.closePath();x.fill();x.stroke();x.restore();
+}
+function drawMinimap(){drawMapTo($("map"),player.pos.x,player.pos.z,170,false)}
+function openMap(){
+  openModal("map",'<span class="pill cap">Карта</span> експедиції',`<div class="mapgrid"><div id="mapWrap"><canvas id="bigmap" width="900" height="900" aria-label="Карта світу. Натисни, щоб поставити позначку"></canvas></div>
+  <div class="mapside"><h3>Данжі</h3><ul>${PLACES().filter(p=>p.ic==="dun").map(p=>`<li>${p.n}<b>${p.done()?"пройдено":p.diff}</b></li>`).join("")}</ul>
+  <h3>Позначка</h3><p class="lead" style="font-size:13px">Натисни на карту, щоб поставити позначку. Компас покаже до неї напрямок.</p><button class="btn ghost sm" id="clrWp">Прибрати позначку</button>
+  <div class="legend"><span><i style="background:#D2601A"></i>Ти</span><span><i style="background:#173A1D"></i>Будівлі</span><span><i style="background:#5E6B57"></i>Дорога</span><span><i style="background:#E2C18A"></i>Стежки</span>${has("treasuredetector")?'<span><i style="background:#FFD34D"></i>Скрині</span>':""}</div></div></div>`);
+  const cv=$("bigmap");const draw=()=>{if(modalKind==="map")drawMapTo(cv,0,0,MAPW,true)};draw();
+  cv.onclick=e=>{const r=cv.getBoundingClientRect(),wx=((e.clientX-r.left)/r.width*2-1)*MAPW,wz=((e.clientY-r.top)/r.height*2-1)*MAPW;S.waypoint=[wx,wz];sfx("click");draw();save()};
+  $("clrWp").onclick=()=>{S.waypoint=null;draw();save()};
+  mapTimer=setInterval(draw,500);
+}
+let mapTimer=0;
+
+/* ================= Модальні вікна ================= */
+let modalOpen=false,modalKind=null;
+function openModal(kind,title,html){
+  clearInterval(mapTimer);modalKind=kind;$("mTitle").innerHTML=title;$("mBody").innerHTML=html;$("modal").hidden=false;modalOpen=true;
+  for(const k in keys)keys[k]=false;if(shiftLock&&document.pointerLockElement)document.exitPointerLock();
+  setTimeout(()=>$("mClose").focus(),0);
+}
+function closeModal(){clearInterval(mapTimer);$("modal").hidden=true;modalOpen=false;modalKind=null;canvas.focus();if(shiftLock)setShiftLock(true,true)}
+$("mClose").onclick=closeModal;$("modal").addEventListener("pointerdown",e=>{if(e.target.id==="modal")closeModal()});
+const svgI=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+function openCollection(){
+  const cards=ART.map(a=>{const f=S.discovered[a.id],n=S.artifacts[a.id]||0,rr=RAR[a.r],dark=f&&(a.r==="legendary"||a.r==="secret");
+    return `<article class="card ${dark?"dark":""} ${f?"":"unk"}"><span class="tag">${viewReward(a)} грн</span><img src="${THUMB[f?a.id:a.id+"_sil"]||""}" alt="${f?a.name:"Ще не знайдений артефакт"}"><h3>${f?a.name:"???"}</h3><span class="chip"><i style="background:${rr.color}"></i>${rr.name}</span><span class="n">${f?"У тебе: ×"+n:a.roll?"ще не знайдено":"нагорода данжу"}</span></article>`}).join("");
+  openModal("col",'<span class="pill o cap">Колекція</span> артефактів',`<p class="lead">${Object.keys(S.discovered).length} з ${ART.length} знайдено. Ціна на картці — скільки платить один відвідувач за перегляд у вітрині.</p><div class="grid">${cards}</div><div class="foot"><button class="btn o" id="bArr">Розставити найкращі у вітрини</button></div>`);
+  $("bArr").onclick=()=>{autoArrange();openCollection()};
+}
+function renderUpg(){
+  $("mBody").innerHTML='<p class="lead">Покращення бази та музею. Гроші заробляють відвідувачі, що приїжджають автобусом.</p><div class="list">'+UPG.map(u=>{const l=S.upgrades[u.id],max=l>=u.max,price=max?0:u.price[l];
+    const lv=u.id==="shelves"?"Вітрин: "+l+" / "+u.max:u.id==="lab"?"Столів: "+l+" / "+u.max:"Рівень "+l+" / "+u.max+(u.levels?" · "+u.levels[l-1]:"")+(u.cap?" · "+u.cap[l-1]+" місць":"");
+    return `<div class="row"><span class="ic">${svgI(u.icon)}</span><div class="info"><h3>${u.name}</h3><div class="lv">${lv}</div><p>${u.effect}</p></div>${max?'<button class="btn" disabled>Максимум</button>':`<button class="btn o" data-buy="${u.id}" ${S.money<price?"disabled":""}>Купити · ${money(price)}</button>`}</div>`}).join("")+"</div>";
+  $("mBody").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buyUpg(b.dataset.buy));
+}
+function openUpg(){openModal("upg",'<span class="pill cap">Покращення</span> бази',"");renderUpg()}
+function buyUpg(id){
+  const u=UPGBY[id],l=S.upgrades[id];if(l>=u.max)return;const price=u.price[l];
+  if(!spend(price)){toast("Бракує грошей: потрібно "+money(price),COL.orange);sfx("error");return}
+  S.upgrades[id]=l+1;S.purchases++;sfx("buy");toast(u.name+": рівень "+(l+1)+"!",COL.orange);
+  if(id==="shelves")updatePedestals();if(id==="lab")refreshTables();if(id==="bus")updateBillboards();
+  checkQuest();renderHUD();renderUpg();save();
+}
+function updateBillboards(){W.billboards.forEach((b,i)=>b.visible=i<S.upgrades.bus-1)}
+let storeCat="Усі";
+function renderStore(){
+  const cats=["Усі",...new Set(ITEMS.map(i=>i.cat))];
+  $("mBody").innerHTML=`<p class="lead">Спорядження для експедицій. Інструменти купуються один раз і лишаються назавжди, витратні предмети можна докуповувати.</p>
+  <div class="tabs">${cats.map(c=>`<button aria-pressed="${c===storeCat}" data-cat="${c}">${c}</button>`).join("")}</div>
+  <div class="list">${ITEMS.filter(i=>storeCat==="Усі"||i.cat===storeCat).map(i=>{const own=S.inv[i.id]||0;
+    return `<div class="row"><span class="ic ${i.type==="consumable"?"o":""}">${svgI(i.icon)}</span><div class="info"><h3>${i.name}</h3><div class="lv">${money(i.price)} · ${i.type==="tool"?"назавжди":"витратний"}</div><p>${i.desc}</p><div class="stats">${i.stats.map(s=>`<span>${s}</span>`).join("")}</div></div>
+    ${i.type==="tool"&&own?'<span class="owned">Є в інвентарі</span>':`<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${own?`<span class="owned">У тебе: ${own}</span>`:""}<button class="btn o" data-item="${i.id}" ${S.money<i.price?"disabled":""}>Купити · ${money(i.price)}</button></div>`}</div>`}).join("")}</div>`;
+  $("mBody").querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{storeCat=b.dataset.cat;renderStore()});
+  $("mBody").querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{buyItem(b.dataset.item);renderStore()});
+}
+function openStore(){openModal("store",'<span class="pill o cap">Крамниця</span> «Компас»',"");renderStore()}
+function renderInv(){
+  const owned=ITEMS.filter(i=>has(i.id));
+  const dung=[["Піщаний каньйон",S.secrets.key],["Затоплений храм",S.temple.solved],["Темна гробниця",S.crypt.solved],["Обсерваторія",S.obs.solved]];
+  $("mBody").innerHTML=`<div class="journal">Реліквій у рюкзаку: <b>${S.unknown} / ${capacity()}</b> · Здоров'я: <b>${S.hp} / ${MAX_HP}</b><br>Данжі: ${dung.map(([n,d])=>n+(d?" ✓":" —")).join(" · ")}</div>
+  ${owned.length?`<div class="list">${owned.map(i=>`<div class="row"><span class="ic ${i.type==="consumable"?"o":""}">${svgI(i.icon)}</span><div class="info"><h3>${i.name}${i.type==="consumable"?" ×"+S.inv[i.id]:""}</h3><p>${i.desc}</p></div>
+    ${i.id==="flashlight"?`<button class="btn ${S.flashlightOn?"o":"ghost"}" id="invFl">${S.flashlightOn?"Вимкнути (F)":"Увімкнути (F)"}</button>`:i.id==="medkit"?`<button class="btn o" id="invMed" ${S.hp>=MAX_HP?"disabled":""}>Використати (Q)</button>`:'<span class="owned">Діє автоматично</span>'}</div>`).join("")}</div>`
+  :`<p class="lead">Інвентар порожній. Спорядження продається в крамниці «Компас» на площі.</p><div class="foot"><button class="btn o" id="invStore">Відкрити магазин</button></div>`}`;
+  const fl=$("invFl");if(fl)fl.onclick=()=>{toggleFlashlight();renderInv()};const md=$("invMed");if(md)md.onclick=()=>{useMedkit();renderInv()};const st=$("invStore");if(st)st.onclick=openStore;
+}
+function openInv(){openModal("inv",'<span class="pill cap">Інвентар</span>',"");renderInv()}
+function renderReb(){
+  const nb=Math.round((S.rebirths+1)*REBIRTH_BONUS*100),ok=S.money>=REBIRTH_COST;
+  $("mBody").innerHTML=`<p class="lead">Повністю розвинув музей? Вирушай у нову експедицію. Гроші, покращення й звичайні артефакти скинуться, але відвідувачі назавжди платитимуть на ${nb}% більше. Нагороди данжів, спорядження й відкриття залишаться з тобою.</p>
+  <div style="font-weight:800;font-size:14px;font-variant-numeric:tabular-nums">Гроші: ${money(S.money)} / ${money(REBIRTH_COST)}</div><div class="meter"><i style="width:${Math.min(100,S.money/REBIRTH_COST*100).toFixed(1)}%"></i></div>
+  <div class="startrow"><button class="btn o big" id="bDoReb" ${ok?"":"disabled"}>Почати заново</button>${S.rebirths?`<span class="stamp cap">Експедицій: ${S.rebirths}</span>`:""}</div>`;
+  const b=$("bDoReb");if(b)b.onclick=rebirth;
+}
+function openReb(){openModal("reb",'<span class="pill cap">Нова</span> експедиція',"");renderReb()}
+function rebirth(){
+  if(S.money<REBIRTH_COST)return;const keep={};for(const id in S.artifacts)if(ARTBY[id]&&!ARTBY[id].roll)keep[id]=S.artifacts[id];
+  Object.assign(S,{artifacts:keep,money:0,unknown:0,upgrades:{tool:1,shelves:2,lab:1,backpack:1,bus:1},placed:["","","","","","","",""],rebirths:S.rebirths+1});
+  S.tables.forEach(t=>{t.busy=false;t.end=0});refreshTables();updatePedestals();updateBillboards();renderHUD();save();closeModal();foxSay("Нова експедиція! Відвідувачі тепер платять на "+Math.round(S.rebirths*REBIRTH_BONUS*100)+"% більше.");
+}
+function showLore(k){
+  const T={temple:["«Світло приходить із заходу й шукає кришталь на півночі.","Опусти зайве дзеркало, нахили потрібне — і промінь знайде шлях.","А сова знає, де камінь не тримає стіну.»"]};
+  openModal("lore",'<span class="pill cap">Напис</span> на камені',`<div class="journal" style="font-family:var(--f-hand);font-size:24px;line-height:1.25">${T[k].join("<br>")}</div><p class="lead">Дзеркало має три положення: опущене (світло проходить), нахил «/» і нахил «\\». Дивись на мапу підлоги згори: північ — до святилища.</p>`);
+}
+
+/* ---- Замки скринь ---- */
+function readHint(ch,h){ch.found=ch.found||{};ch.found[h.k]=true;sfx("click");toast("Камінь "+["I","II","III"][h.k]+": "+SYM[ch.clueIdx[h.k]],COL.orange)}
+function openChestUI(ch){
+  const T=CHEST_TIERS[ch.tier],pz=ch.puzzles[ch.stage],names=ch.tier==="legendary"?["Диски","Код на кришці","Останній замок"]:ch.tier==="epic"?["Загадка","Символи","Ряд"]:["Замок"];
+  const stages=`<div class="stages">${names.map((n,i)=>`<span class="${i<ch.stage?"done":i===ch.stage?"cur":""}">${i+1}. ${n}</span>`).join("")}<span>Спроб: ${ch.attempts}</span></div>`;
+  let body="";
+  if(pz.kind==="opt"){body=`<div class="riddle"><q>${pz.q}</q><div class="opts">${pz.opts.map((o,i)=>`<button class="btn ghost big" data-o="${i}">${o}</button>`).join("")}</div></div>`}
+  else if(pz.kind==="num"){let q=pz.q;
+    if(pz.legend){q="На кришці викарбувано: "+SYM.map((s,i)=>s+" = "+ch.vals[i]).join(",  ")+". Введи суму значень трьох символів, які стоять на дисках.";pz.ans=ch.clueIdx.reduce((a,i)=>a+ch.vals[i],0)}
+    body=`<div class="riddle"><q>${q}</q><div class="display" id="kpD"></div><div class="keypad">${[1,2,3,4,5,6,7,8,9,"⌫",0,"OK"].map(k=>`<button data-k="${k}" aria-label="${k}">${k}</button>`).join("")}</div>${pz.hint&&ch.tier!=="legendary"&&ch.attempts<3?`<p class="lead" style="text-align:center;margin:14px auto 0">${pz.hint}</p>`:""}</div>`}
+  else if(pz.kind==="dials"){ch.dials=ch.dials||[0,0,0];const f=ch.found||{};
+    body=`<p class="lead">Три диски замка. Правильні символи вибиті на трьох каменях із рунами поруч зі скринею — знайди їх і роздивися.</p>
+    <div class="journal">Журнал: ${[0,1,2].map(k=>"Камінь "+["I","II","III"][k]+" — "+(f[k]?SYM[ch.clueIdx[k]]:"не знайдено")).join(" · ")}</div>
+    <div class="dials">${ch.dials.map((d,i)=>`<div class="dial"><button class="face" data-d="${i}" aria-label="Диск ${i+1}">${SYM[d]}</button><small>Диск ${["I","II","III"][i]}</small></div>`).join("")}</div><div class="foot"><button class="btn o" id="dialGo">Повернути замок</button></div>`}
+  const pick=ch.tier!=="rare"&&has("lockpicks")?`<button class="btn ghost sm" id="usePick">Відмичка: пропустити етап (є ${S.inv.lockpicks})</button>`:"";
+  openModal("chest",`<span class="pill ${T.pill} cap">${T.short}</span> скриня`,stages+body+`<div class="err" id="cErr"></div>${pick?`<div class="foot">${pick}</div>`:""}`);
+  const fail=()=>{if(!chestAnswer(ch,false))return;$("cErr").textContent="Ні, не те. Залишилось спроб: "+ch.attempts;const sp=$("mBody").querySelector(".stages span:last-child");if(sp)sp.textContent="Спроб: "+ch.attempts};
+  $("mBody").querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{+b.dataset.o===pz.ans?chestAnswer(ch,true):fail()});
+  if(pz.kind==="num"){let val="";const D=$("kpD");$("mBody").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k;sfx("click");
+    if(k==="⌫")val=val.slice(0,-1);else if(k==="OK"){if(!val)return;+val===pz.ans?chestAnswer(ch,true):(fail(),val="")}else if(val.length<5)val+=k;D.textContent=val})}
+  if(pz.kind==="dials"){$("mBody").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{const i=+b.dataset.d;ch.dials[i]=(ch.dials[i]+1)%4;b.textContent=SYM[ch.dials[i]];sfx("click")});
+    $("dialGo").onclick=()=>{ch.dials.every((d,i)=>d===ch.clueIdx[i])?chestAnswer(ch,true):fail()}}
+  const up=$("usePick");if(up)up.onclick=()=>{S.inv.lockpicks--;toast("Відмичка зламалась, але етап пройдено");chestAnswer(ch,true);save()};
+}
+
+/* ================= Мініатюри ================= */
+const THUMB={};
+function makeThumbs(){
+  let r;try{r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true})}catch(e){return}
+  r.setSize(220,220);r.outputEncoding=THREE.sRGBEncoding;
+  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x9aa080,1.05));const dl=new THREE.DirectionalLight(0xffffff,.6);dl.position.set(-3,6,-5);sc.add(dl);
+  const cam=new THREE.PerspectiveCamera(32,1,.1,100);
+  const shot=(obj,eye,look,sil)=>{sc.add(obj);cam.position.set(...eye);cam.lookAt(...look);sc.overrideMaterial=sil?mat("ink"):null;r.render(sc,cam);const u=r.domElement.toDataURL("image/png");sc.remove(obj);return u};
+  THUMB.fox=shot(foxModel(1),[-4.2,6.4,-11.5],[0,4.2,0]);
+  const f2=foxModel(1);f2.children[12].rotation.z=-2.4;f2.children[12].position.set(-2.1,4.6,0);f2.children[13].position.set(-2.9,5.6,0);THUMB.foxWave=shot(f2,[-3.6,5,-13.5],[0,3.8,0]);
+  for(const a of ART){THUMB[a.id]=shot(artifactModel(a.id,1),[2.6,3,-6.4],[0,1.15,0]);THUMB[a.id+"_sil"]=shot(artifactModel(a.id,1),[2.6,3,-6.4],[0,1.15,0],true)}
+  r.dispose();try{r.forceContextLoss()}catch(e){}
+}
+
+/* ================= Керування ================= */
+addEventListener("keydown",e=>{
+  if(e.code==="Escape"&&modalOpen){closeModal();return}
+  if(!started)return;
+  if(modalOpen){if(["KeyM","KeyB","KeyI","KeyC","KeyU"].includes(e.code)&&modalKind!=="chest")closeModal();return}
+  keys[e.code]=true;
+  if(e.code==="Space"){player.jumpBuf=.15;e.preventDefault()}
+  if(e.repeat)return;
+  if(e.code==="KeyR")setShiftLock(!shiftLock);
+  if(e.code==="KeyF")toggleFlashlight();
+  if(e.code==="KeyQ")useMedkit();
+  if(e.code==="KeyH")goHome();
+  if(e.code==="KeyM")openMap();if(e.code==="KeyB")openStore();if(e.code==="KeyI")openInv();if(e.code==="KeyC")openCollection();if(e.code==="KeyU")openUpg();
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+});
+addEventListener("keyup",e=>{keys[e.code]=false});
+addEventListener("blur",()=>{for(const k in keys)keys[k]=false});
+let drag=null;
+canvas.addEventListener("pointerdown",e=>{canvas.focus();audioInit();if(shiftLock&&e.pointerType==="mouse"){if(document.pointerLockElement!==canvas)setShiftLock(true,true);return}drag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener("pointermove",e=>{
+  if(shiftLock&&e.pointerType==="mouse"){if(document.pointerLockElement===canvas){camYaw-=e.movementX*.0032;camPitch=clamp(camPitch+e.movementY*.0028,.05,1.25)}return}
+  if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  camYaw-=dx*.006;camPitch=clamp(camPitch+dy*.005,.05,1.25)});
+canvas.addEventListener("pointerup",e=>{if(drag&&drag.id===e.pointerId)drag=null});
+canvas.addEventListener("pointercancel",()=>drag=null);
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+canvas.addEventListener("wheel",e=>{camDist=clamp(camDist+e.deltaY*.02,9,50);e.preventDefault()},{passive:false});
+const stEl=$("stick"),knob=stEl.querySelector("i");
+stEl.addEventListener("pointerdown",e=>{audioInit();stick.id=e.pointerId;stEl.setPointerCapture(e.pointerId);moveStick(e)});
+stEl.addEventListener("pointermove",e=>{if(stick.id===e.pointerId)moveStick(e)});
+const endStick=()=>{stick.id=null;stick.x=stick.y=0;knob.style.transform=""};
+stEl.addEventListener("pointerup",endStick);stEl.addEventListener("pointercancel",endStick);
+function moveStick(e){const r=stEl.getBoundingClientRect();let dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}stick.x=dx;stick.y=dy;knob.style.transform=`translate(${dx*36}px,${dy*36}px)`}
+const tAct=$("tAct");tAct.addEventListener("pointerdown",e=>{touchAct=true;tAct.setPointerCapture(e.pointerId)});["pointerup","pointercancel"].forEach(t=>tAct.addEventListener(t,()=>touchAct=false));
+$("tJump").addEventListener("pointerdown",()=>player.jumpBuf=.15);
+$("tRun").addEventListener("pointerdown",()=>{runToggle=!runToggle;$("tRun").classList.toggle("on",runToggle)});
+$("slock").onclick=()=>setShiftLock(!shiftLock);
+$("sound").onclick=()=>{audioInit();muted=!muted;$("sndWave").style.display=muted?"none":"";toast(muted?"Звук вимкнено":"Звук увімкнено")};
+$("bCol").onclick=openCollection;$("bShop").onclick=openUpg;$("bStore").onclick=openStore;$("bInv").onclick=openInv;$("bMap").onclick=openMap;$("bHome").onclick=goHome;$("bReb").onclick=openReb;
+$("map").onclick=openMap;
+
+/* ================= Головний цикл ================= */
+let started=false,last=performance.now(),saveT=0,guideT=0,guideI=0,attract=0,hudT=0;
+const companion={pos:new THREE.Vector3(),face:0};
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?74:60;camera.updateProjectionMatrix()}
+addEventListener("resize",resize);
+const tmpQ=new THREE.Vector3();
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;UNI.uTime.value=t;
+  if(started){
+    if(!modalOpen&&!tpBusy)physics(dt);
+    animatePlayer(dt,t);updateCamera(dt);
+    updateBus(dt);updateVisitors(dt);updateTables(dt,t);updateInteract(dt);updateDetectors(dt);
+    saveT+=dt;if(saveT>8){saveT=0;save()}
+    regenT+=dt;if(regenT>40){regenT=0;if(S.hp<MAX_HP){S.hp++;renderHUD()}}
+    if(digSpots.length<16&&Math.random()<dt*1.2)spawnDig();
+    if(chests.filter(c=>!c.fixed).length<4&&Math.random()<dt/40)spawnChest();
+    if(!currentEvent&&t>nextEventAt)startEvent(EVENTS[rint(0,EVENTS.length-1)]);
+    if(currentEvent&&t>eventEndsAt)endEvent();
+    hudT+=dt;if(hudT>.25){hudT=0;renderEventTimer();renderCompass();$("rVal").textContent="≈ +"+fmt(ratePerMin())+" грн / хв"+(payMult()>1?"  ·  ×"+String(+payMult().toFixed(2)).replace(".",","):"");drawMinimap()}
+  }else{attract+=dt*.05;camera.position.set(Math.sin(attract)*110,58,150+Math.cos(attract)*110);camera.lookAt(0,4,140);updateBus(dt);updateVisitors(dt);updateTables(dt,t)}
+  // компаньйон-лисичка
+  const back=V3(Math.sin(player.face)*6+Math.cos(player.face)*4,0,Math.cos(player.face)*6-Math.sin(player.face)*4);
+  const goal=player.pos.clone().add(back);const dist=V3(companion.pos.x-goal.x,0,companion.pos.z-goal.z).length();
+  if(dist>60)companion.pos.copy(goal);else{companion.pos.x+=(goal.x-companion.pos.x)*Math.min(1,dt*3);companion.pos.z+=(goal.z-companion.pos.z)*Math.min(1,dt*3)}
+  companion.pos.y+=(Math.max(floorAt(companion.pos.x,companion.pos.z),player.pos.y-6)-companion.pos.y)*Math.min(1,dt*10);if(inCrypt()||player.pos.y>groundH(player.pos.x,player.pos.z)+2)companion.pos.y+=(player.pos.y-companion.pos.y)*Math.min(1,dt*10);
+  if(dist>.6)companion.face+=angDiff(companion.face,Math.atan2(-(goal.x-companion.pos.x),-(goal.z-companion.pos.z)))*Math.min(1,dt*8);
+  W.buddy.position.set(companion.pos.x,companion.pos.y+Math.abs(Math.sin(t*6))*(dist>1?.45:.06),companion.pos.z);W.buddy.rotation.y=companion.face;
+  // анімації світу
+  for(const s of digSpots)if(s.g.visible)s.sp.forEach((m,i)=>{const a=t*1.8+m.userData.ph;m.position.set(Math.cos(a)*1.6,3+Math.sin(t*3+i)*.6,Math.sin(a)*1.6);m.rotation.set(t,t*1.3,0)});
+  for(const ch of chests){ch.sp.forEach((m,i)=>{const a=t*1.4+m.userData.ph;m.position.set(Math.cos(a)*2.4,4+Math.sin(t*2+i)*.8,Math.sin(a)*2.4)});if(ch.g.userData.ring)ch.g.userData.ring.rotation.y=t*.8;if(ch.g.userData.beam)ch.g.userData.beam.material.opacity=.2+Math.sin(t*2)*.08}
+  for(let i=fallingRocks.length-1;i>=0;i--){const r=fallingRocks[i];r.v-=90*dt;r.m.position.y=Math.max(2.8,r.m.position.y+r.v*dt);r.life-=dt;if(r.life<=0){scene.remove(r.m);fallingRocks.splice(i,1)}}
+  for(let i=doors.length-1;i>=0;i--){const d=doors[i];d.t=Math.min(1,d.t+dt*.7);d.m.position.y=d.from+d.dy*(d.t*d.t*(3-2*d.t));if(d.t>=1){d.m.visible=false;doors.splice(i,1)}}
+  for(const s of W.spikes){const up=((t+s.ph)%3)<1.2;s.up=up;s.g.position.y+=((up?1.2:-.4)-s.g.position.y)*Math.min(1,dt*14)}
+  W.fire.scale.set(1+Math.sin(t*11)*.12,1+Math.sin(t*7)*.2,1+Math.cos(t*9)*.12);W.flag.rotation.y=Math.sin(t*2.2)*.25;W.flag.position.x=-23+Math.sin(t*2.2)*.4;
+  W.armillary.children.forEach((r,i)=>{if(r.isGroup){r.rotation.x+=dt*(.2+i*.15);r.rotation.y+=dt*(.3-i*.1)}});W.fountain.position.y=7+Math.sin(t*3)*.4;
+  W.guide.position.y=.4+Math.abs(Math.sin(t*2))*.15;guideT+=dt;if(guideT>6){guideT=0;guideI=(guideI+1)%FOXLINES.length;W.guideLabel.el.textContent=FOXLINES[guideI]}
+  W.merchant.userData.head.rotation.y=Math.sin(t*.7)*.4;
+  // комахи й птахи (оновлюємо лише ближніх)
+  for(const b of W.butterflies){if(b.home.distanceTo(player.pos)>160){b.g.visible=false;continue}b.g.visible=true;const a=t*b.sp+b.ph;b.g.position.set(b.home.x+Math.cos(a)*4+Math.sin(a*2.3)*1.5,b.home.y+1.5+Math.sin(a*3)*1.2,b.home.z+Math.sin(a)*4);b.g.rotation.y=-a;const f=Math.sin(t*18+b.ph)*1.1;b.l.rotation.y=f;b.r.rotation.y=-f}
+  for(const b of W.birds){const a=t*b.sp+b.off;b.g.position.set(b.cx+Math.cos(a)*b.r,b.h+Math.sin(t*.6+b.ph)*3,b.cz+Math.sin(a)*b.r);b.g.rotation.y=-a+(b.sp>0?0:Math.PI);const f=Math.sin(t*7+b.ph)*.7;b.L.rotation.z=f;b.R.rotation.z=-f}
+  {const ps=W.gnats.geometry.attributes.position,sd=W.gnats.userData.seeds,cx=player.pos.x,cy=player.pos.y,cz=player.pos.z;for(let i=0;i<sd.length;i++){const s=sd[i],r=6+s[3]*14;ps.setXYZ(i,cx+Math.cos(t*.5*s[2]+s[0])*r,cy+3+Math.sin(t*s[2]+s[1])*2.5+s[3]*4,cz+Math.sin(t*.4*s[2]+s[1])*r)}ps.needsUpdate=true;W.gnats.material.opacity=inCrypt()?0:.5+nightK*.5;W.gnats.material.color.set(nightK>.5?"#FFF3A0":"#E8E2B0")}
+  updateLighting(dt,t);
+  W.sky.position.copy(camera.position);W.stars.position.copy(camera.position);
+  renderer.render(scene,camera);
+  if(started)updateLabels();
+  requestAnimationFrame(loop);
+}
+
+/* ================= Старт ================= */
+function step(fn){return new Promise(r=>requestAnimationFrame(()=>{fn();r()}))}
+async function boot(hotData){
+  const saved=(hotData&&hotData.save)||loadSave();
+  if(saved)S=saved;ensurePuzzle();
+  await step(()=>{makeTextures();buildHeightGrid()});
+  await step(buildWorld);
+  await step(()=>{
+    player.model=personModel({explorer:true,shirt:"#E9C27F"});scene.add(player.model);
+    W.buddy=foxModel(.62);scene.add(W.buddy);buildBus();
+    const sg=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1200;i++){const v=new THREE.Vector3(Math.random()-.5,Math.random()*.9+.08,Math.random()-.5).normalize().multiplyScalar(3200);sp.push(v.x,v.y,v.z)}
+    sg.setAttribute("position",new THREE.Float32BufferAttribute(sp,3));W.stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xfff6dc,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));scene.add(W.stars);
+    // відновлюємо стан данжів
+    if(S.socket)setSocketLit();refreshTiles();if(S.secrets.canyon)slideOpen(W.door,-9,true);
+    drawBeam();if(S.temple.solved)slideOpen(W.sanctumDoor,-10.5,true);if(S.temple.secret){slideOpen(W.secretPanel,-8,true);W.looseBrick.visible=false}
+    if(!S.temple.taken)W.altarHolder.add(artifactModel("mirror",1.6));
+    if(S.temple.secret&&!S.fixed.temple)spawnChest("epic","temple",W.secretChestPos);
+    if(S.crypt.solved)slideOpen(W.tombDoor,-11,true);if(S.crypt.rope)W.rope.visible=true;if(S.crypt.crack){W.crackWall.visible=false;W.crackWall.userData.col.on=false}
+    if(S.crypt.solved)W.glyphs.forEach(g=>g.mesh.material=mat("#7FD3FF","neon"));
+    if(!S.crypt.taken)W.tombHolder.add(artifactModel("shadowmask",1.6));if(!S.crypt.ledge)W.ledgeItem.add(artifactModel("scarab",1.4));
+    W.crackLootG=new THREE.Group();W.crackLootG.position.copy(W.crackRoom);scene.add(W.crackLootG);if(!S.crypt.crackLoot)for(let i=0;i<6;i++)box(W.crackLootG,[1,.4,1],[(i%3-1)*1.2,.2+Math.floor(i/3)*.4,0],"gold",{m:"metal",dyn:true});
+    if(!S.fixed.crypt)spawnChest("legendary","crypt",W.cryptChestPos,[V3(414,1,-264),V3(446,1,-316),V3(446,1,-262)]);
+    if(S.obs.solved)slideOpen(W.archiveDoor,-8.5,true);if(!S.obs.taken)W.archiveHolder.add(artifactModel("astrolabe",1.5));
+    if(!S.fixed.obs)spawnChest("epic","obs",W.archiveChestPos);
+    refreshTables();updatePedestals();updateBillboards();
+  });
+  await step(()=>{const r=mergeStatic(scene);console.log("merged",r);buildRelief()});
+  await step(()=>{
+    for(let i=0;i<14;i++)spawnDig();for(let i=0;i<3;i++)spawnChest();
+    player.pos.copy(W.home);player.modelY=player.pos.y;camFollow.copy(player.pos);companion.pos.copy(W.home).add(V3(5,0,-3));
+    nextEventAt=performance.now()/1000+EVENT_EVERY;
+    makeThumbs();$("qFox").src=THUMB.fox||"";$("stFox").src=THUMB.foxWave||"";
+    if(matchMedia("(pointer:coarse)").matches)$("touchKeys").hidden=false;
+    const b=$("bStart");b.disabled=false;b.textContent=saved&&saved.started?"Продовжити експедицію":"Почати експедицію";if(saved&&saved.started)$("bReset").hidden=false;
+    renderHUD();resize();drawMinimap();requestAnimationFrame(loop);
+    window.claude?.hot?.snapshot?.(()=>({save:S}));
+  });
+}
+let resetArmed=false;
+$("bReset").onclick=()=>{if(!resetArmed){resetArmed=true;$("bReset").textContent="Точно? Натисни ще раз";return}
+  try{localStorage.removeItem(SAVE_KEY)}catch(e){}location.reload()};
+$("bStart").onclick=()=>{
+  audioInit();$("start").hidden=true;started=true;S.started=true;save();canvas.focus();camYaw=Math.PI;
+  setTimeout(()=>foxSay(S.quest===1?"Привіт! Я піду з тобою. "+QUESTS[0].t:QUESTS[S.quest-1].t),400);
+};
+addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+addEventListener("pagehide",save);
+const startAll=()=>{const hot=window.claude?.hot;hot?.ready?hot.ready(boot):boot(hot?.data??{})};
+const fontsReady=document.fonts?Promise.race([document.fonts.load('800 40px "Unbounded"'),new Promise(r=>setTimeout(r,2500))]):Promise.resolve();
+fontsReady.then(startAll,startAll);
+
+</script>
+</body>
+</html>
