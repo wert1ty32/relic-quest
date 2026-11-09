@@ -34,7 +34,7 @@ const LAY={
 const ZONES=[
  {x0:-36,x1:36,z0:-36,z1:36,h:0,pad:40},
  {x0:-56,x1:56,z0:108,z1:196,h:0,pad:40},
- {x0:-720,x1:720,z0:91,z1:109,h:0,pad:34,col:"road"},
+ {x0:-598,x1:598,z0:91,z1:109,h:0,pad:14,col:"road"},
  {x0:-5,x1:5,z0:-125,z1:-36,h:0,pad:14,col:"path"},
  {x0:-5,x1:5,z0:36,z1:91,h:0,pad:14,col:"path"},
  {x0:36,x1:300,z0:-5,z1:5,h:0,pad:16,col:"path"},
@@ -58,6 +58,8 @@ function terrainH(x,z){
   let h=terrainRaw(x,z);
   const o=LAY.obs,dO=Math.hypot(x-o.x,z-o.z),wO=1-smooth(OBS_R,OBS_R+OBS_PAD,dO);h=h*(1-wO)+o.h*wO;
   for(const zn of ZONES){if(zn.skip)continue;const w=zoneW(zn,x,z);if(w>0)h=h*(1-w)+zn.h*w}
+  // гора над тунелями: дорога пірнає в схил, а не впирається в рівну стіну
+  const ax=Math.abs(x);if(ax>596){const m=smooth(601,607,ax)*(1-smooth(22,85,Math.abs(z-100)));h=Math.max(h,m*(46+fbm(x*.03,z*.03)*8))}
   return h;
 }
 function pathColorW(x,z){let road=0,path=0;for(const zn of ZONES){if(!zn.col)continue;const dx=Math.max(zn.x0-x,0,x-zn.x1),dz=Math.max(zn.z0-z,0,z-zn.z1),d=Math.hypot(dx,dz);const w=1-smooth(0,2.5,d);if(zn.col==="road")road=Math.max(road,w);else path=Math.max(path,w)}
@@ -84,6 +86,10 @@ function makeTextures(){
   blocks("templeStone","#A9B8AE","#6E8178",["#A9B8AE","#9FAFA4","#B3C1B7","#98A99E"],4,2);
   blocks("cryptStone","#5E5A52","#2F2C27",["#5E5A52","#55514A","#67625A","#4C4943"],5,3);
   blocks("marble","#EDE6D3","#C8C0A8",["#EDE6D3","#F4EEDD","#E4DCC6","#EAE2CC"],3,2);
+  blocks("castleStone","#9E9A90","#5E5B54",["#A6A297","#97938A","#ADA99E","#8F8B82","#B3AFA3"],6,3);
+  canvasTex("cobble",256,256,(x,w,h)=>{x.fillStyle="#6E6A60";x.fillRect(0,0,w,h);for(let i=0;i<70;i++){const cx=Math.random()*w,cy=Math.random()*h,r=10+Math.random()*12;x.fillStyle=["#8E8A80","#9A968B","#827E74","#A39F94"][i%4];x.beginPath();x.ellipse(cx,cy,r,r*.8,Math.random()*3,0,7);x.fill();x.strokeStyle="rgba(0,0,0,.25)";x.lineWidth=2;x.stroke()}});
+  canvasTex("moss",128,128,(x,w,h)=>{x.fillStyle="#4F7A3A";x.fillRect(0,0,w,h);speckle(x,w,h,900,["#6FA83A","#3E6B2E","#8CC04F"],.7)});
+  canvasTex("birch",64,256,(x,w,h)=>{x.fillStyle="#ECE8DA";x.fillRect(0,0,w,h);x.fillStyle="#2B2A26";for(let i=0;i<22;i++){const y=Math.random()*h;x.fillRect(Math.random()*w*.6,y,8+Math.random()*24,2+Math.random()*4)}});
   canvasTex("sandstone",256,256,(x,w,h)=>{const cols=["#D9A066","#CF9358","#E0AB72","#C98A55","#D59B60"];let y=0;while(y<h){const t=8+Math.random()*26;x.fillStyle=cols[Math.floor(Math.random()*cols.length)];x.fillRect(0,y,w,t);y+=t}speckle(x,w,h,1500,["#8C5A2B","#F4C27F"],.15)});
   canvasTex("roof",256,256,(x,w,h)=>{x.fillStyle="#173F1F";x.fillRect(0,0,w,h);for(let r=0;r<8;r++)for(let k=-1;k<8;k++){const ox=k*32+(r%2?16:0),oy=r*32;x.fillStyle=["#1E5A2B","#22652F","#1B5227"][(r+k+9)%3];x.beginPath();x.moveTo(ox+1,oy);x.lineTo(ox+31,oy);x.lineTo(ox+31,oy+22);x.quadraticCurveTo(ox+16,oy+34,ox+1,oy+22);x.closePath();x.fill();x.fillStyle="rgba(255,255,255,.08)";x.fillRect(ox+3,oy+2,26,3)}});
   canvasTex("roofOrange",256,256,(x,w,h)=>{x.fillStyle="#8C3D0E";x.fillRect(0,0,w,h);for(let r=0;r<8;r++)for(let k=-1;k<8;k++){const ox=k*32+(r%2?16:0),oy=r*32;x.fillStyle=["#D2601A","#C65922","#DA6E2A"][(r+k+9)%3];x.beginPath();x.moveTo(ox+1,oy);x.lineTo(ox+31,oy);x.lineTo(ox+31,oy+22);x.quadraticCurveTo(ox+16,oy+34,ox+1,oy+22);x.closePath();x.fill()}});
@@ -133,6 +139,15 @@ function tgeo(sx,sy,sz,tile){const k=[sx,sy,sz,tile].map(v=>v.toFixed(2)).join("
   for(let f=0;f<6;f++)for(let i=0;i<4;i++){const k2=f*4+i;uv.setXY(k2,uv.getX(k2)*dims[f][0]/tile,uv.getY(k2)*dims[f][1]/tile)}
   return tgeoCache[k]=g}
 
+const coneGeo=new THREE.CylinderGeometry(0,.5,1,14);
+const octGeo=new THREE.CylinderGeometry(.5,.5,1,8);
+// брила: ікосаедр із детермінованим «тремтінням» вершин (без щілин між гранями)
+const ROCKS=[];
+function rockGeo(i){if(ROCKS[i])return ROCKS[i];const g=new THREE.IcosahedronGeometry(.5,1),p=g.attributes.position;
+  for(let k=0;k<p.count;k++){const x=p.getX(k),y=p.getY(k),z=p.getZ(k),n=hash2(Math.round(x*97)+i*13.1,Math.round(y*89)*7+Math.round(z*83)*3);const f=1+(n-.5)*.42;p.setXYZ(k,x*f,y*f*(.85+i*.03),z*f)}
+  g.computeVertexNormals();return ROCKS[i]=g}
+const phongCache={};
+function rockMat(col){const k=col;if(phongCache[k])return phongCache[k];return phongCache[k]=new THREE.MeshPhongMaterial({color:lin(c(col)),flatShading:true,shininess:14,specular:new THREE.Color(.09,.08,.07)})}
 const colliders=[]; // {box:THREE.Box3, on:true, tag}
 const DEG=Math.PI/180;
 function addCollider(m,tag){m.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m);const cl={box:b,on:true,tag:tag||"",mesh:m};colliders.push(cl);m.userData.col=cl;return cl}
@@ -140,7 +155,7 @@ function addCollider(m,tag){m.updateMatrixWorld(true);const b=new THREE.Box3().s
 function box(parent,s,p,col,o={}){
   let g,m;
   if(o.tex){g=tgeo(s[0],s[1],s[2],o.tile||4);m=new THREE.Mesh(g,mat(col||"white","tex:"+o.tex))}
-  else{g=o.shape==="wedge"?wedgeGeo:o.shape==="cyl"?cylGeo:o.shape==="vcyl"?vcylGeo:o.shape==="ball"?sphGeo:boxGeo;m=new THREE.Mesh(g,o.material||mat(col,o.m,o.op));m.scale.set(s[0],s[1],s[2])}
+  else{g=o.shape==="rock"?rockGeo(o.variant||0):o.shape==="cone"?coneGeo:o.shape==="oct"?octGeo:o.shape==="wedge"?wedgeGeo:o.shape==="cyl"?cylGeo:o.shape==="vcyl"?vcylGeo:o.shape==="ball"?sphGeo:boxGeo;m=new THREE.Mesh(g,o.material||(o.shape==="rock"?rockMat(col):mat(col,o.m,o.op)));m.scale.set(s[0],s[1],s[2])}
   m.position.set(p[0],p[1],p[2]);
   if(o.rot)m.rotation.set(o.rot[0]*DEG,o.rot[1]*DEG,o.rot[2]*DEG);
   m.castShadow=o.shadow!==false;m.receiveShadow=true;
@@ -214,6 +229,22 @@ function sign(mesh,face,text,color,bg){
   pl.userData.group=g;return pl;
 }
 
+/* ---- Логотип (оригінальні пропорції 277×127) ---- */
+const LOGO_ASPECT=277/127;let LOGO_TEX=null;
+function loadLogoTexture(){return new Promise(res=>{const im=new Image();let done=false;const fin=v=>{if(!done){done=true;res(v)}};
+  im.onload=()=>{try{const w=1386,h=Math.round(w/LOGO_ASPECT),cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(im,0,0,w,h);
+    const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;LOGO_TEX=t;fin(t)}catch(e){fin(null)}};
+  im.onerror=()=>fin(null);im.src=LOGO_URL;setTimeout(()=>fin(LOGO_TEX),5000)})}
+// логотип на грані зеленої вивіски; ширина — у метрах світу, висота з пропорцій
+function logoPlane(mesh,face,width){
+  const s=mesh.scale,hgt=width/LOGO_ASPECT;
+  if(!LOGO_TEX){return sign(mesh,face,"TOURISM DEPARTMENT","cream")}
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(width,hgt),new THREE.MeshBasicMaterial({map:LOGO_TEX,transparent:true,depthWrite:false}));
+  const g=new THREE.Group();g.userData.noMerge=true;g.position.copy(mesh.position);g.rotation.copy(mesh.rotation);mesh.parent.add(g);
+  if(face==="front"){pl.rotation.y=Math.PI;pl.position.z=-s.z/2-.05}else{pl.position.z=s.z/2+.05}
+  g.add(pl);return pl;
+}
+
 /* ---- Небо й гори (панорама 360°) ---- */
 function buildSky(){
   const g=new THREE.SphereGeometry(3600,32,16),cols=[],p=g.attributes.position,top=lin("#9FD3EE"),hor=lin("#EAF3E3");
@@ -257,7 +288,12 @@ function buildTerrain(){
     const pw=pathColorW(x,z);if(pw.path>0)tmp.lerp(cPath,pw.path);if(pw.road>0)tmp.lerp(cRoad,pw.road);
     col.push(tmp.r,tmp.g,tmp.b)}
   g.setAttribute("color",new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
-  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true}));m.receiveShadow=true;m.userData.noMerge=true;scene.add(m);return m;
+  const tm=new THREE.MeshLambertMaterial({vertexColors:true});
+  // всередині тунелів рельєф не малюється — видно темну глибину, а не схил
+  tm.onBeforeCompile=sh=>{sh.vertexShader="varying vec3 vWpT;\n"+sh.vertexShader.replace("#include <begin_vertex>","#include <begin_vertex>\nvWpT=(modelMatrix*vec4(transformed,1.)).xyz;");
+    sh.fragmentShader="varying vec3 vWpT;\n"+sh.fragmentShader.replace("void main() {","void main() {\n if(abs(vWpT.x)>599.6&&abs(vWpT.z-100.)<10.8&&vWpT.y<19.5)discard;")};
+  tm.customProgramCacheKey=()=>"terrainTunnel";
+  const m=new THREE.Mesh(g,tm);m.receiveShadow=true;m.userData.noMerge=true;scene.add(m);return m;
 }
 
 /* ---- Об'єднання статичних мешів (менше викликів малювання → вищий FPS) ---- */
@@ -265,7 +301,7 @@ function mergeStatic(root){
   const buckets=new Map(),victims=[];
   root.updateMatrixWorld(true);
   const walk=(o,skip)=>{if(o.userData&&o.userData.noMerge)skip=true;
-    if(o.isMesh&&!skip&&!o.isInstancedMesh&&!o.userData.dyn&&o.visible&&o.material&&o.material.isMeshLambertMaterial&&!o.material.transparent){
+    if(o.isMesh&&!skip&&!o.isInstancedMesh&&!o.userData.dyn&&o.visible&&o.material&&(o.material.isMeshLambertMaterial||o.material.isMeshPhongMaterial)&&!o.material.transparent){
       const key=o.material.uuid+"|"+(o.castShadow?1:0);if(!buckets.has(key))buckets.set(key,{m:o.material,cast:o.castShadow,list:[]});buckets.get(key).list.push(o);victims.push(o)}
     for(const ch of o.children.slice())walk(ch,skip)};
   walk(root,false);

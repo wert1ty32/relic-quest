@@ -54,10 +54,10 @@ function buildWorld(){
   box(scene,[10.4,.2,10.4],[14,1.62,-14],"water",{shape:"vcyl",m:"glass"});
   box(scene,[2,5,2],[14,3,-14],"white",{tex:"marble",tile:2});box(scene,[4,.6,4],[14,5.6,-14],"white",{shape:"vcyl",material:mat("white","tex:marble")});
   W.fountain=box(scene,[1.2,2.4,1.2],[14,7,-14],"#BFE3F5",{m:"glass",dyn:true});
-  box(scene,[1.2,16,1.2],[-15,8,-26],"white",{tex:"planks",tile:2,collide:true});box(scene,[1.2,16,1.2],[15,8,-26],"white",{tex:"planks",tile:2,collide:true});
-  const board=box(scene,[34,10,1],[0,13,-26],"forest");sign(board,"back","RELIC QUEST","cream");sign(board,"front","RELIC QUEST","cream");
-  const sub=box(scene,[24,2.6,.3],[0,9.6,-25.4],"orange");sign(sub,"back","ТАЄМНИЦІ АРТЕФАКТІВ","paper");
-  signpost(scene,-6,-40,"ЛІС · ПІВНІЧ",0);signpost(scene,40,-9,"КАНЬЙОН · СХІД",90);signpost(scene,-8,42,"МУЗЕЙ · ПІВДЕНЬ",180);signpost(scene,-40,9,"ХРАМ · ЗАХІД",-90);
+  box(scene,[1.6,24,1.6],[-17.6,12,-26],"white",{tex:"planks",tile:2,collide:true});box(scene,[1.6,24,1.6],[17.6,12,-26],"white",{tex:"planks",tile:2,collide:true});
+  const board=box(scene,[34,15.6,1],[0,15.4,-26],"forest");logoPlane(board,"back",29);logoPlane(board,"front",29);box(scene,[35.2,1,1.6],[0,23.6,-26],"orange");box(scene,[35.2,1,1.6],[0,7.2,-26],"orange");
+  const sub=box(scene,[24,2.6,.3],[0,5.6,-25.4],"orange");sign(sub,"back","RELIC QUEST · ТАЄМНИЦІ АРТЕФАКТІВ","paper");
+  signpost(scene,-6,-40,"ЛІС · ПІВНІЧ",0);signpost(scene,40,-9,"ПЕЧЕРА · СХІД",90);signpost(scene,-8,42,"МУЗЕЙ · ПІВДЕНЬ",180);signpost(scene,-40,9,"ХРАМ · ЗАХІД",-90);
   for(let i=0;i<12;i++)box(scene,[1.2,.35,1.2],[14+i*4,.3,16+Math.sin(i*.6)*4],"forest",{shadow:false});
   box(scene,[1.2,4,1.2],[64,2,16],"pin");box(scene,[3.4,3.4,3.4],[64,5,16],"pin",{shape:"ball"});
   const guide=foxModel(1.2);guide.position.set(10,.4,2);guide.rotation.y=200*DEG;scene.add(guide);W.guide=guide;
@@ -69,7 +69,7 @@ function buildWorld(){
   {const x0=-34,x1=-14,z0=-16,z1=0,y=.4,top=10;
    box(scene,[x1-x0,.4,z1-z0],[(x0+x1)/2,y+.2,(z0+z1)/2],"white",{tex:"planks",tile:4,shadow:false});
    wall(scene,x0,x0+1.2,z0,z1,y,top);wall(scene,x0,x1,z0,z0+1.2,y,top);wall(scene,x0,x1,z1-1.2,z1,y,top);
-   wall(scene,x1-1.2,x1,z0,z0+4,y,top);wall(scene,x1-1.2,x1,z1-4,z1,y,top);box(scene,[1.2,2.5,z1-z0],[x1-.6,y+top-1.25,(z0+z1)/2],"white",{tex:"plaster",tile:6});
+   wall(scene,x1-1.2,x1,z0,z0+4,y,top);wall(scene,x1-1.2,x1,z1-4,z1,y,top);trimBuilding(scene,x0,x1,z0,z1,y,top,"stone",{x1:[z0+4,z1-4]});box(scene,[1.2,2.5,z1-z0],[x1-.6,y+top-1.25,(z0+z1)/2],"white",{tex:"plaster",tile:6});
    const rg=roofGroup(x0,x1,z0,z1,top+y);gableRoof(rg,x0,x1,z0,z1,y+top,5,"roofOrange",false);
    box(scene,[3,2.2,18],[x1+1.6,y+top-1.4,(z0+z1)/2],"white",{tex:"stripes",tile:4,rot:[0,0,-18]});
    box(scene,[2.5,3.4,10],[x1-3.5,y+1.7,(z0+z1)/2],"white",{tex:"planks",tile:3,collide:true});box(scene,[3,.4,10.6],[x1-3.5,y+3.6,(z0+z1)/2],"forest");
@@ -82,10 +82,7 @@ function buildWorld(){
    W.shopCounter=V3(x1-1,2,(z0+z1)/2);}
 
   /* ---------- Дорога й автобусна зупинка ---------- */
-  box(scene,[1440,.12,16],[0,.06,100],"white",{tex:"asphalt",tile:10,shadow:false});
-  for(let x=-700;x<=700;x+=12)box(scene,[5,.14,.6],[x,.1,100],"cream",{shadow:false});
-  for(let i=-3;i<=3;i++)box(scene,[1.6,.15,14],[i*2.6,.11,100],"paper",{shadow:false});
-  box(scene,[1440,.4,1.2],[0,.2,108.6],"white",{tex:"stone",tile:2,shadow:false});
+  buildRoad();
   {const s=LAY.stop;
    box(scene,[34,.5,6],[s.x,.25,s.z+1],"white",{tex:"stone",tile:3,shadow:false});
    box(scene,[16,7,.4],[s.x+4,4,s.z+3.6],"#BFE3F5",{m:"glass"});
@@ -117,7 +114,8 @@ function buildWorld(){
   {const x0=-24,x1=24,z0=128,z1=158,y=1,top=12;
    box(scene,[x1-x0,.2,z1-z0],[0,y+.1,(z0+z1)/2],"white",{tex:"floor",tile:6,shadow:false});
    wall(scene,x0,x1,z1-2,z1,y,top);wall(scene,x0,x0+2,z0,z1,y,top);wall(scene,x1-2,x1,z0,z1,y,top);
-   wall(scene,x0,-7,z0,z0+2,y,top);wall(scene,7,x1,z0,z0+2,y,top);box(scene,[14,2.6,2],[0,y+top-1.3,z0+1],"white",{tex:"plaster",tile:6});
+   wall(scene,x0,-7,z0,z0+2,y,top);wall(scene,7,x1,z0,z0+2,y,top);trimBuilding(scene,x0,x1,z0,z1,y,top,"marble",{z0:[-7,7]});
+   {const lp=box(scene,[15.4,7.06,.5],[0,y+top+3.4,z0-.6],"forest");logoPlane(lp,"front",14.6)}box(scene,[14,2.6,2],[0,y+top-1.3,z0+1],"white",{tex:"plaster",tile:6});
    box(scene,[x1-x0+1,1,z1-z0+1],[0,y+top+.5,(z0+z1)/2],"forest");
    for(const x of[-9,9]){box(scene,[2.4,top,2.4],[x,y+top/2,z0-1],"white",{shape:"vcyl",material:mat("white","tex:marble"),collide:true});box(scene,[3.2,.8,3.2],[x,y+.4,z0-1],"white",{tex:"marble",tile:2});box(scene,[3.2,.8,3.2],[x,y+top-.4,z0-1],"white",{tex:"marble",tile:2})}
    box(scene,[22,1.2,4],[0,y+top+.2,z0-1.2],"white",{tex:"marble",tile:3});
@@ -142,7 +140,7 @@ function buildWorld(){
   {const x0=30,x1=60,z0=124,z1=162,y=1,top=11;
    box(scene,[x1-x0,.2,z1-z0],[(x0+x1)/2,y+.1,(z0+z1)/2],"white",{tex:"labFloor",tile:8,shadow:false});
    wall(scene,x1-2,x1,z0,z1,y,top);wall(scene,x0,x1,z0,z0+2,y,top);wall(scene,x0,x1,z1-2,z1,y,top);
-   wall(scene,x0,x0+2,z0,138,y,top);wall(scene,x0,x0+2,146,z1,y,top);box(scene,[2,3,8],[x0+1,y+top-1.5,142],"white",{tex:"plaster",tile:6});
+   wall(scene,x0,x0+2,z0,138,y,top);wall(scene,x0,x0+2,146,z1,y,top);trimBuilding(scene,x0,x1,z0,z1,y,top,"stone",{x0:[138,146]});box(scene,[2,3,8],[x0+1,y+top-1.5,142],"white",{tex:"plaster",tile:6});
    box(scene,[2.2,.5,9],[x0+1,y+top-3.2,142],"forest");
    for(const zz of[132,152]){box(scene,[.3,4,6],[x0-.15,y+6,zz],"#BFE3F5",{m:"glass"});box(scene,[.5,.5,6.6],[x0-.3,y+3.8,zz],"forest");box(scene,[.5,.5,6.6],[x0-.3,y+8.2,zz],"forest")}
    const ls=box(scene,[.4,2.4,12],[x0-.25,y+top+.2,142],"forest");sign(ls,"left","ЛАБОРАТОРІЯ","cream");
@@ -184,18 +182,23 @@ function buildWorld(){
 
   /* ---------- Ліс і окремі гаї ---------- */
   const R=seeded(42),F=LAY.forest;W.trees=[];
-  for(let i=0;i<150;i++){const x=F.x1+Math.floor(R()*(F.x2-F.x1)),z=F.z1+Math.floor(R()*(F.z2-F.z1));
-    if(Math.abs(x)<8&&z>-170)continue;if(Math.hypot(x+180,z+300)<10)continue;if(x>240&&z>-300&&z<-280)continue;
-    (R()<.3?pine:tree)(scene,x,z,R,R()<.3);W.trees.push([x,z])}
-  // гаї навколо (природні скупчення)
-  const groves=[[-150,40,10],[160,60,8],[-260,140,12],[230,200,9],[-120,250,10],[120,-60,7],[-200,-60,9],[300,-180,8],[-520,180,9],[520,230,8],[-560,-200,10],[580,-80,7]];
-  for(const [gx,gz,n] of groves)for(let i=0;i<n;i++){const x=gx+(R()-.5)*60,z=gz+(R()-.5)*60;if(zoneBlocked(x,z,8))continue;(R()<.45?pine:tree)(scene,x,z,R,R()<.2);W.trees.push([x,z])}
-  for(let i=0;i<40;i++){const x=(R()-.5)*1100,z=(R()-.5)*1000;if(zoneBlocked(x,z,8))continue;const s=3+Math.floor(R()*6),y=groundH(x,z);box(scene,[s,s*.7,s*.9],[x,y+s*.25,z],"white",{tex:"stone",tile:3,collide:true,rot:[0,R()*90,0]})}
+  const okSpot=(x,z,d)=>!(Math.abs(x)<9&&z>-178)&&Math.hypot(x+180,z+300)>13&&W.trees.every(([tx,tz])=>Math.hypot(tx-x,tz-z)>d);
+  const plantTree=(x,z,dens)=>{const k=R();
+    if(k<.3)oak(scene,x,z,R,.85+R()*.55+dens*.3);else if(k<.56)spruce(scene,x,z,R,.85+R()*.6);else if(k<.72)birch(scene,x,z,R);
+    else if(k<.8)giant(scene,x,z,R);else if(k<.85)deadTree(scene,x,z,R);else spruce(scene,x,z,R,1.3+R()*.5);W.trees.push([x,z])};
+  // густий ліс: сітка з тремтінням + шум щільності (галявини, хащі, стежки)
+  for(let gx=F.x1;gx<F.x2;gx+=10)for(let gz=F.z1;gz<F.z2;gz+=10){const x=gx+R()*10,z=gz+R()*10,dens=fbm(x*.011+40,z*.011-9);
+    if(dens<-.3)continue;if(R()>.62+dens*.7)continue;if(!okSpot(x,z,6))continue;plantTree(x,z,Math.max(0,dens));
+    if(R()<.3)forestDecor(scene,x+(R()-.5)*9,z+(R()-.5)*9,R)}
+  // узлісся та гаї за межами лісу
+  const groves=[[-150,40,10],[160,60,8],[-260,140,12],[230,200,9],[-120,250,10],[120,-60,7],[-200,-60,9],[300,-180,10],[-520,180,9],[520,230,8],[-560,-200,10],[560,-80,7],[-300,-150,8],[180,-150,9]];
+  for(const [gx,gz,n] of groves)for(let i=0;i<n;i++){const x=gx+(R()-.5)*64,z=gz+(R()-.5)*64;if(zoneBlocked(x,z,8)||!okSpot(x,z,7))continue;plantTree(x,z,0);if(R()<.25)forestDecor(scene,x+4,z+3,R)}
+  for(let i=0;i<46;i++){const x=(R()-.5)*1100,z=(R()-.5)*1000;if(zoneBlocked(x,z,8))continue;const sz=3+R()*6,y=groundH(x,z);boulder(scene,x,y+sz*.25,z,sz*1.3,sz*.8,sz,R,null,{collide:sz>4});if(R()<.5)box(scene,[sz,.4,sz*.8],[x,y+sz*.62,z],"white",{tex:"moss",tile:2})}
   const gate=box(scene,[16,3,.5],[0,6,-114],"forest");sign(gate,"front","ШЕПІТНИЙ ЛІС","cream");sign(gate,"back","ШЕПІТНИЙ ЛІС","cream");
   box(scene,[1,7.5,1],[-8,3.75,-114],"white",{tex:"bark",tile:2,collide:true});box(scene,[1,7.5,1],[8,3.75,-114],"white",{tex:"bark",tile:2,collide:true});
   stoneTablet(scene,-180,groundH(-180,-300)+3,-300,20,"1 — "+SYM[S.solution[0]]);
 
-  buildCanyon();buildTemple();buildCrypt();buildObservatory();
+  buildCave();buildTemple();buildCastle();buildObservatory();
   // межі світу
   for(const [s,p] of [[[1500,300,2],[0,150,-700]],[[1500,300,2],[0,150,700]],[[2,300,1500],[-700,150,0]],[[2,300,1500],[700,150,0]]]){const m=box(scene,s,p,"forest",{collide:true});m.visible=false}
   buildVegetation();buildCritters();
@@ -206,39 +209,6 @@ function zoneBlocked(x,z,pad){
   if(Math.hypot(x-LAY.obs.x,z-LAY.obs.z)<OBS_R+pad+10)return true;
   if(Math.max(Math.abs(x),Math.abs(z))>600)return true;
   return false;
-}
-
-/* ---------- Піщаний каньйон (як і раніше, з текстурами) ---------- */
-function buildCanyon(){
-  box(scene,[220,1,26],[410,.5,0],"white",{tex:"sandstone",tile:8,shadow:false,collide:false});
-  box(scene,[220,30,6],[410,15,-13],"white",{tex:"sandstone",tile:10,collide:true});box(scene,[220,30,6],[410,15,13],"white",{tex:"sandstone",tile:10,collide:true});
-  const R2=seeded(7);
-  for(let i=0;i<14;i++){const w=18+Math.floor(R2()*16),h=16+Math.floor(R2()*20),z=R2()<.5?-28-Math.floor(R2()*42):28+Math.floor(R2()*42);
-    box(scene,[w,h,w],[320+Math.floor(R2()*200),h/2,z],"white",{tex:"sandstone",tile:10,collide:true})}
-  const cg=box(scene,[1,4,20],[300,27,0],"forest");sign(cg,"left","ПІЩАНИЙ КАНЬЙОН","cream");
-  const warn=box(scene,[12,4,.4],[326,6,-9.8],"cream");sign(warn,"back","ОБЕРЕЖНО: ПАСТКИ! СТУПАЙ НА ◆","stamp");
-  W.traps=[];const safe=[2,1,3,2];
-  for(let col=1;col<=4;col++)for(let lane=1;lane<=3;lane++){
-    const x=342.5+(col-1)*15,z=(lane-2)*6.6,ok=safe[col-1]===lane;
-    const pl=box(scene,[14.6,.3,6.4],[x,1.15,z],"white",{tex:ok?"stone":"sandstone",tile:3,shadow:false});
-    if(ok)sign(pl,"top","◆   ◆   ◆","forest");else W.traps.push({x0:x-7.3,x1:x+7.3,z0:z-3.2,z1:z+3.2,y:2.5,respawn:CANYON_RESPAWN,msg:"Обережно, плита хитається! Ступай лише на плити з візерунком ◆"});
-  }
-  stoneTablet(scene,430,6,9.4,0,"2 — "+SYM[S.solution[1]]);
-  const X=472;
-  box(scene,[4,30,6],[X,15,-7],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[4,30,6],[X,15,7],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[4,20,8],[X,20,0],"white",{tex:"sandstone",tile:8,collide:true});
-  W.door=box(scene,[3,9,8],[X,5.5,0],"white",{tex:"stone",tile:3,collide:true,dyn:true});sign(W.door,"left","?","tan");
-  W.tiles=[];for(let i=0;i<3;i++){const t=box(scene,[1.2,4,4],[X-2.5,12.6,(i-1)*5],"rock",{dyn:true});W.tiles.push({mesh:t,sign:sign(t,"left","?","ink"),pos:V3(X-3,12.6,(i-1)*5)})}
-  const nums=box(scene,[.3,1.6,14],[X-2.1,15.6,0],"cream");sign(nums,"left","1       2       3","forest");
-  W.socket=box(scene,[1.4,3,3],[X-2.6,4,-7.5],"ink",{dyn:true});W.socketPos=V3(X-3,4,-7.5);
-  box(scene,[34,1,20],[X+19,.6,0],"white",{tex:"stone",tile:4,collide:true,shadow:false});
-  box(scene,[2,30,26],[X+37,15,0],"white",{tex:"sandstone",tile:8,collide:true});box(scene,[36,2,26],[X+19,15,0],"white",{tex:"sandstone",tile:8});
-  for(const z of[-9,9])for(const dx of[8,26])box(scene,[.8,1.6,.8],[X+dx,8,z],"orange",{m:"neon"});
-  pointLight(X+17,8,0,0xffc27f,1,34);
-  box(scene,[5,3,3.5],[X+30,2.6,0],"gold",{m:"metal",collide:true});box(scene,[5.2,1,3.7],[X+30,4.4,0],"forest");box(scene,[1,1,.3],[X+30,3,-1.85],"pin",{m:"neon"});
-  W.ancient=V3(X+30,3,0);W.roomMinX=X+2;
-  box(scene,[22,18,22],[285,9,44],"white",{tex:"sandstone",tile:8,collide:true});
-  for(let i=1;i<=6;i++)box(scene,[5,i*3,5],[271,i*1.5,30+i*4.2],"white",{tex:"sandstone",tile:3,collide:true});
-  stoneTablet(scene,285,21,44,0,"3 — "+SYM[S.solution[2]],"sandstone");
 }
 
 /* ---------- Затоплений храм (захід) ---------- */
@@ -253,8 +223,8 @@ function buildTemple(){
   W.pools.forEach(p=>W.traps.push({x0:p.x0,x1:p.x1,z0:p.z0,z1:p.z1,y:1.2,respawn:V3(-392,0,-20),msg:"Бульк! Вода в храмі крижана й глибока. Обходь басейни!"}));
   // сходи на схід
   for(let i=0;i<3;i++)box(scene,[2,.5*(i+1),20],[-396+(2-i)*2-2,.25*(i+1),-20],"white",{...st,collide:true,shadow:false});
-  const h=14,w=(x0,x1,z0,z1,hh)=>wall(scene,x0,x1,z0,z1,y,hh||h,{tex:"templeStone",tile:4});
-  w(-462,-460,-52,12);w(-462,-398,-52,-50);w(-400,-398,-52,-26);w(-400,-398,-14,12);box(scene,[2,4,12],[-399,y+h-2,-20],"white",{...st});
+  const h=14,RT=seeded(19),w=(x0,x1,z0,z1,hh,ruin)=>masonryWall(scene,x0,x1,z0,z1,y,hh||h,RT,{tex:"templeStone",ruin,pilaster:8});
+  w(-462,-460,-52,12,0,true);w(-462,-398,-52,-50,0,true);w(-400,-398,-52,-26);w(-400,-398,-14,12);box(scene,[2,4,12],[-399,y+h-2,-20],"white",{...st});stoneArch(scene,-397.6,-20,y,12,8,true,"templeStone",2);
   // південна стіна з таємною панеллю
   w(-462,-442,10,12);w(-434,-398,10,12);box(scene,[8,6,2],[-438,y+h-3,11],"white",{...st});
   W.secretPanel=box(scene,[8,h-6,2],[-438,y+(h-6)/2,11],"white",{tex:"templeStone",tile:4,collide:true,dyn:true});
@@ -283,55 +253,6 @@ function buildTemple(){
     W.mirrors.push({i,j,g,pos:V3(x,y+3,z)})});
   W.sourcePos=V3(T.x0+2,y+4.6,T.gz+2*T.cell);box(scene,[1,3,3],[T.x0+2.2,y+4.6,T.gz+2*T.cell],"#FFE7A3",{m:"neon"});
   W.beam=new THREE.Group();W.beam.userData.noMerge=true;scene.add(W.beam);
-}
-
-/* ---------- Темна гробниця (північний схід) ---------- */
-const CRYPT={x0:358,x1:472,z0:-322,z1:-258,top:11};
-function buildCrypt(){
-  const st={tex:"cryptStone",tile:4},y=0;
-  const cw=(x0,x1,z0,z1,hh)=>wall(scene,x0,x1,z0,z1,y,hh||CRYPT.top,{tex:"cryptStone",tile:4});
-  // скеля навколо
-  const R=seeded(31);for(let i=0;i<22;i++){const w=14+R()*20,hh=14+R()*14,x=350+R()*130,z=-335+R()*90;if(x>356&&x<474&&z>-324&&z<-256)continue;box(scene,[w,hh,w*.9],[x,hh/2-2,z],"white",{tex:"cryptStone",tile:8,collide:true,rot:[0,R()*40,0]})}
-  box(scene,[120,1,70],[415,-.3,-290],"white",{...st,shadow:false});
-  // фасад
-  box(scene,[3,16,10],[358,8,-299],"white",{...st,collide:true});box(scene,[3,16,10],[358,8,-281],"white",{...st,collide:true});box(scene,[3,4,8],[358,14,-290],"white",{...st});
-  const fs=box(scene,[.4,2.4,12],[356.3,13.8,-290],"forestDeep");sign(fs,"left","ТЕМНА ГРОБНИЦЯ","lime300");
-  for(const z of[-297,-283])box(scene,[1,1.6,1],[356,9,z],"#7FD3FF",{m:"neon"});
-  // коридор
-  cw(358,410,-296,-294);cw(358,402,-286,-284);cw(406,410,-286,-284);
-  W.crackWall=box(scene,[4,CRYPT.top,2],[404,CRYPT.top/2,-285],"white",{tex:"stone",tile:3,collide:true,dyn:true});
-  // таємна кімната за тріснутою стіною
-  cw(398,400,-284,-272);cw(408,410,-284,-272);cw(398,410,-274,-272);
-  W.crackRoom=V3(404,1,-278);
-  // зала
-  cw(410,412,-322,-294);cw(410,412,-286,-258);cw(410,452,-322,-320);cw(410,452,-260,-258);cw(450,452,-322,-294);cw(450,452,-286,-258);
-  W.tombDoor=box(scene,[2,CRYPT.top,8],[451,CRYPT.top/2,-290],"white",{tex:"cryptStone",tile:4,collide:true,dyn:true});
-  cw(452,472,-300,-298);cw(452,472,-282,-280);cw(470,472,-300,-280);
-  // стеля (ховається, коли гравець усередині)
-  const rg=roofGroup(CRYPT.x0,CRYPT.x1,CRYPT.z0,CRYPT.z1,CRYPT.top+1.5);
-  box(rg,[52,1.2,12],[384,CRYPT.top+.6,-290],"white",{...st});box(rg,[42,1.2,64],[431,CRYPT.top+.6,-290],"white",{...st});box(rg,[20,1.2,20],[462,CRYPT.top+.6,-290],"white",{...st});box(rg,[12,1.2,14],[404,CRYPT.top+.6,-278],"white",{...st});
-  W.cryptRoof=rg;
-  // шипи-пастки в коридорі
-  W.spikes=[];for(const [x,ph] of[[376,0],[391,1.4]]){const g=new THREE.Group();g.position.set(x,0,-290);g.userData.noMerge=true;scene.add(g);
-    box(scene,[6,.2,8],[x,.1,-290],"cryptDark",{shadow:false});for(let a=0;a<4;a++)for(let b=0;b<3;b++)box(g,[.5,2.4,.5],[-2.2+a*1.45,-1,-2.6+b*2.6],"#C9CFD2",{m:"metal",dyn:true});
-    W.spikes.push({g,x0:x-3,x1:x+3,z0:-294,z1:-286,ph,up:false})}
-  // гліфи
-  const GL=["☾","☀","★","◆"];W.glyphs=[];
-  [[420,-302],[440,-302],[420,-278],[440,-278]].forEach(([x,z],k)=>{box(scene,[3,3,3],[x,1.5,z],"white",{...st,collide:true});const s=box(scene,[2.4,2.4,2.4],[x,4.2,z],"cryptDark",{dyn:true});sign(s,"top",GL[k],"#7FD3FF");sign(s,"front",GL[k],"#7FD3FF");sign(s,"back",GL[k],"#7FD3FF");W.glyphs.push({k,sym:GL[k],mesh:s,pos:V3(x,3,z)})});
-  // настінні розписи — видно лише з ліхтариком
-  W.murals=[];const ord=S.crypt.order;
-  [[411.2,-312,"right"],[411.2,-268,"right"],[449.6,-312,"left"],[449.6,-268,"left"]].forEach(([x,z,f],k)=>{const p=box(scene,[.2,4,8],[x,6,z],"#2B2A33",{dyn:true});const sg=sign(p,f,["I","II","III","IV"][k]+" · "+GL[ord[k]],"#F4C27F");W.murals.push(sg.userData.group)});
-  // уступ для мотузки
-  box(scene,[16,1,8],[420,9,-317],"white",{...st,collide:true});box(scene,[16,9,1],[420,4.5,-313.3],"cryptDark",{collide:true});
-  W.ledgeBase=V3(420,1,-310);W.ledgeTop=V3(420,9.5,-318);
-  W.rope=box(scene,[.3,9,.3],[420,4.5,-312.8],"tan",{dyn:true});W.rope.visible=false;
-  W.ledgeItem=new THREE.Group();W.ledgeItem.position.set(424,9.5,-318);W.ledgeItem.userData.noMerge=true;scene.add(W.ledgeItem);
-  // гробниця
-  box(scene,[6,2.4,4],[466,1.2,-290],"white",{tex:"marble",tile:2,collide:true});W.tombAltar=V3(466,2.4,-290);
-  W.tombHolder=new THREE.Group();W.tombHolder.position.copy(W.tombAltar);W.tombHolder.userData.noMerge=true;scene.add(W.tombHolder);
-  W.cryptChestPos=V3(460,0,-296);
-  W.cryptLights=[pointLight(430,8,-290,0x7fd3ff,.7,34),pointLight(462,7,-290,0xffb35a,.6,22)];
-  for(const [x,z] of[[412.5,-300],[412.5,-280],[449.5,-300],[449.5,-280]])box(scene,[.6,1.4,.6],[x,7,z],"#7FD3FF",{m:"neon"});
 }
 
 /* ---------- Руїни обсерваторії (пагорб на південному заході) ---------- */
@@ -393,7 +314,8 @@ function buildVegetation(){
     const g=["#2F7D32","#3E8A3F","#1E5A2B","#4F9A45"][bi%4];bushA.setColorAt(bi,lin(g));bushB.setColorAt(bi,lin(["#6FA83A","#8CC04F"][bi%2]));
     if(s>3.2){const cl={box:new THREE.Box3(V3(x-s*.55,y,z-s*.5),V3(x+s*.55,y+s*.9,z+s*.5)),on:true,tag:"bush"};colliders.push(cl)}
     W.bushes.push(V3(x,y+s,z));bi++});
-  bushA.count=bushB.count=bi;[bushA,bushB].forEach(m=>{m.userData.noMerge=true;m.castShadow=true;m.receiveShadow=true;scene.add(m)});
+  bushA.count=bushB.count=bi;
+  buildFerns(dummy,col);[bushA,bushB].forEach(m=>{m.userData.noMerge=true;m.castShadow=true;m.receiveShadow=true;scene.add(m)});
 }
 /* ---------- Комахи й птахи ---------- */
 function buildCritters(){
@@ -410,4 +332,15 @@ function buildCritters(){
   const bm=new THREE.MeshBasicMaterial({color:lin("#173A1D"),side:THREE.DoubleSide,fog:true});
   for(let f=0;f<3;f++){const cx=(Math.random()-.5)*600,cz=(Math.random()-.5)*600,r=120+Math.random()*120,h=70+Math.random()*40,sp=(.05+Math.random()*.04)*(f%2?1:-1);
     for(let i=0;i<5;i++){const g=new THREE.Group();const L=new THREE.Mesh(bw,bm),Rr=new THREE.Mesh(bw,bm);Rr.scale.x=-1;g.add(L,Rr);scene.add(g);W.birds.push({g,L,R:Rr,cx,cz,r:r+i*6,h:h+(i%2)*4,sp,off:i*.06,ph:Math.random()*6})}}
+}
+
+// папороть і підлісок у лісі (інстансинг)
+function buildFerns(dummy,col){
+  const g=new THREE.BufferGeometry(),pos=[],nor=[];for(let i=0;i<6;i++){const a=i/6*6.28,dx=Math.cos(a),dz=Math.sin(a),px=-dz*.35,pz=dx*.35;
+    const v=[[px,0,pz],[-px,0,-pz],[dx*2.2-px*.4,1.1,dz*2.2-pz*.4],[dx*2.2+px*.4,1.1,dz*2.2+pz*.4]];for(const t of[[0,1,2],[1,3,2]])for(const k of t){pos.push(...v[k]);nor.push(0,1,0)}}
+  g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setAttribute("normal",new THREE.Float32BufferAttribute(nor,3));
+  const N=3600,m=new THREE.InstancedMesh(g,addSway(new THREE.MeshLambertMaterial({side:THREE.DoubleSide}),.25,true),N);let i=0;const F=LAY.forest;
+  for(let t=0;t<N*6&&i<N;t++){const x=F.x1+Math.random()*(F.x2-F.x1),z=F.z1+Math.random()*(F.z2-F.z1);if(Math.abs(x)<7&&z>-178)continue;if(fbm(x*.02,z*.02)<-.15)continue;
+    dummy.position.set(x,groundH(x,z),z);dummy.rotation.set(0,Math.random()*6.28,0);const s=.8+Math.random()*1.1;dummy.scale.set(s,s,s);dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix);m.setColorAt(i,lin(["#2F7D32","#3E8A3F","#4F9A45","#25683A"][i%4]));i++}
+  m.count=i;m.userData.noMerge=true;m.receiveShadow=true;scene.add(m);
 }

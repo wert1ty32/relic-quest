@@ -82,9 +82,9 @@ function buildRelief(){
 const PLACES=()=>[
  {n:"Музей і база",x:0,z:150,c:"#D2601A",ic:"home"},{n:"Лабораторія",x:45,z:143,c:"#1E5A2B",ic:"lab"},{n:"Зупинка",x:LAY.stop.x,z:LAY.stop.z,c:"#B04E12",ic:"bus"},
  {n:"Крамниця «Компас»",x:-24,z:-8,c:"#D2601A",ic:"shop"},{n:"Площа",x:0,z:0,c:"#173A1D",ic:"dot"},
- {n:"Піщаний каньйон",x:430,z:0,c:"#B04E12",ic:"dun",done:()=>!!S.secrets.key,diff:"середній"},
+ {n:"Печера Шепоту",x:330,z:0,c:"#B04E12",ic:"dun",done:()=>!!S.secrets.key,diff:"середній"},
  {n:"Затоплений храм",x:-430,z:-20,c:"#4FA3A0",ic:"dun",done:()=>S.temple.solved,diff:"середній"},
- {n:"Темна гробниця",x:415,z:-290,c:"#3F3C36",ic:"dun",done:()=>S.crypt.solved,diff:"складний"},
+ {n:"Замок Тіней",x:414,z:-290,c:"#3F3C36",ic:"dun",done:()=>S.crypt.solved,diff:"складний"},
  {n:"Обсерваторія",x:LAY.obs.x,z:LAY.obs.z,c:"#B8722C",ic:"dun",done:()=>S.obs.solved,diff:"легкий"},
 ];
 function drawMapTo(cv,cx,cz,span,big){
@@ -92,7 +92,7 @@ function drawMapTo(cv,cx,cz,span,big){
   x.fillStyle="#EEF4DC";x.fillRect(0,0,W2,H2);
   if(relief){const N=relief.width,k=N/(MAPW*2);x.drawImage(relief,(cx-span+MAPW)*k,(cz-span+MAPW)*k,span*2*k,span*2*k,0,0,W2,H2)}
   // будівлі
-  x.fillStyle="rgba(23,58,29,.85)";for(const r of [[-24,24,128,158],[30,60,124,162],[-34,-14,-16,0],[-462,-398,-52,12],[358,472,-322,-258],[452,472,-300,-280]]){x.fillRect(px(r[0]),pz(r[2]),(r[1]-r[0])*sc,(r[3]-r[2])*sc)}
+  x.fillStyle="rgba(23,58,29,.85)";for(const r of [[-24,24,128,158],[30,60,124,162],[-34,-14,-16,0],[-462,-398,-52,12],[346,482,-334,-246],[316,512,-14,14],[596,620,88,112],[-620,-596,88,112]]){x.fillRect(px(r[0]),pz(r[2]),(r[1]-r[0])*sc,(r[3]-r[2])*sc)}
   x.strokeStyle="#D2601A";x.lineWidth=Math.max(1,sc*1.2);x.strokeRect(px(-64),pz(114),128*sc,78*sc);
   // скрині (з детектором скарбів)
   if(has("treasuredetector"))for(const ch of chests){x.fillStyle=CHEST_TIERS[ch.tier].glow;x.strokeStyle="#173A1D";x.lineWidth=2;x.beginPath();x.rect(px(ch.pos.x)-5,pz(ch.pos.z)-5,10,10);x.fill();x.stroke()}
@@ -166,7 +166,7 @@ function renderStore(){
 function openStore(){openModal("store",'<span class="pill o cap">Крамниця</span> «Компас»',"");renderStore()}
 function renderInv(){
   const owned=ITEMS.filter(i=>has(i.id));
-  const dung=[["Піщаний каньйон",S.secrets.key],["Затоплений храм",S.temple.solved],["Темна гробниця",S.crypt.solved],["Обсерваторія",S.obs.solved]];
+  const dung=[["Печера Шепоту",S.secrets.key],["Затоплений храм",S.temple.solved],["Замок Тіней",S.crypt.solved],["Обсерваторія",S.obs.solved]];
   $("mBody").innerHTML=`<div class="journal">Реліквій у рюкзаку: <b>${S.unknown} / ${capacity()}</b> · Здоров'я: <b>${S.hp} / ${MAX_HP}</b><br>Данжі: ${dung.map(([n,d])=>n+(d?" ✓":" —")).join(" · ")}</div>
   ${owned.length?`<div class="list">${owned.map(i=>`<div class="row"><span class="ic ${i.type==="consumable"?"o":""}">${svgI(i.icon)}</span><div class="info"><h3>${i.name}${i.type==="consumable"?" ×"+S.inv[i.id]:""}</h3><p>${i.desc}</p></div>
     ${i.id==="flashlight"?`<button class="btn ${S.flashlightOn?"o":"ghost"}" id="invFl">${S.flashlightOn?"Вимкнути (F)":"Увімкнути (F)"}</button>`:i.id==="medkit"?`<button class="btn o" id="invMed" ${S.hp>=MAX_HP?"disabled":""}>Використати (Q)</button>`:'<span class="owned">Діє автоматично</span>'}</div>`).join("")}</div>`

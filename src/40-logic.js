@@ -53,11 +53,11 @@ const QUESTS=[
  {t:"Постав артефакт у вітрину музею. Відвідувачі платитимуть за перегляд!",done:()=>exhibitValue()>0,target:()=>W.pedestals[0].pos},
  {t:"Автобус привозить відвідувачів до зупинки біля бази. Заробіть перші 30 грн на екскурсіях.",done:()=>S.earned>=30,target:()=>V3(LAY.stop.x,0,LAY.stop.z)},
  {t:"Купи спорядження в крамниці «Компас» на площі. Почни з компаса або аптечки.",done:()=>S.itemBuys>0,target:()=>W.shopCounter},
- {t:"Дивний камінь — частина механізму! Знайди Піщаний каньйон на сході й встав камінь у гніздо.",done:()=>S.socket,target:()=>W.socketPos},
+ {t:"Дивний камінь — частина механізму! Знайди Печеру Шепоту на сході й встав камінь у гніздо біля різьбленої брами.",done:()=>S.socket,target:()=>W.socketPos},
  {t:"Знайди три камені-підказки з символами й поверни плити в правильному порядку.",done:()=>!!S.secrets.canyon,target:()=>W.socketPos},
- {t:"Двері відчинено! Відкрий скриню предків у таємній кімнаті каньйону.",done:()=>!!S.secrets.key,target:()=>W.ancient},
+ {t:"Двері відчинено! Відкрий скриню предків у таємній залі печери.",done:()=>!!S.secrets.key,target:()=>W.ancient},
  {t:"Затоплений храм на заході: спрямуй промінь світла дзеркалами на кришталь.",done:()=>S.temple.solved,target:()=>V3(-392,0,-20)},
- {t:"Темна гробниця на північному сході. Візьми ліхтарик: підказки намальовані на стінах.",done:()=>S.crypt.solved,target:()=>V3(356,0,-290)},
+ {t:"Замок Тіней на північному сході. Візьми ліхтарик: підказки намальовані на стінах тронної зали.",done:()=>S.crypt.solved,target:()=>V3(336,0,-290)},
  {t:"Руїни обсерваторії на пагорбі (південний захід): запам'ятай мелодію кристалів.",done:()=>S.obs.solved,target:()=>W.obsStart},
  {t:"Ти справжній дослідник! Збери всю колекцію, відкривай легендарні скрині й розвивай музей.",done:()=>false,target:()=>null},
 ];
@@ -362,7 +362,7 @@ function touchGlyph(k){
   if(S.crypt.solved){toast("Гліфи вже мовчать.");return}
   const want=S.crypt.order[S.crypt.progress];
   if(k===want){S.crypt.progress++;W.glyphs[k].mesh.material=mat("#7FD3FF","neon");sfx("note",[523,587,659,784][S.crypt.progress-1]);
-    if(S.crypt.progress>=4){S.crypt.solved=true;slideOpen(W.tombDoor,-11);earn(2000);toast("Гробницю відчинено! +2 000 грн",COL.orange);foxSay("Двері гробниці на сході зали відчинилися!");checkQuest()}}
+    if(S.crypt.progress>=4){S.crypt.solved=true;slideOpen(W.tombDoor,-11);earn(2000);toast("Скарбницю замку відчинено! +2 000 грн",COL.orange);foxSay("Двері скарбниці на сході тронної зали відчинилися!");checkQuest()}}
   else{S.crypt.progress=0;W.glyphs.forEach(g=>g.mesh.material=mat("cryptDark"));sfx("error");foxSay(has("flashlight")&&S.flashlightOn?"Не той порядок. Придивися до розписів на стінах — там римські цифри.":"Не той порядок… Тут темно. Може, на стінах щось намальовано? Без ліхтарика не розгледіти.")}
   save();
 }

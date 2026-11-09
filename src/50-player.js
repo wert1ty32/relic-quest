@@ -84,6 +84,7 @@ function animatePlayer(dt,t){
   u.legL.rotation.x=sw;u.legR.rotation.x=-sw;u.armL.rotation.x=-sw*.9;u.armR.rotation.x=sw*.9;
   u.body.rotation.x=-.12*player.runBlend*Math.min(1,hs/20);u.body.position.y=Math.abs(Math.sin(player.walk*f))*.18*amp+(hs<1?Math.sin(t*2)*.04:0);
   if(!player.onGround){u.legL.rotation.x=-.5;u.legR.rotation.x=.3;u.armL.rotation.x=-2.4;u.armR.rotation.x=-2.4}
+  if(player.torch&&player.torch.g.visible)u.armR.rotation.x=-1.25+Math.sin(t*2)*.05;
 }
 function setShiftLock(on,silent){
   shiftLock=on;$("slock").classList.toggle("on",on);$("slock").setAttribute("aria-pressed",String(on));$("crosshair").hidden=!on;
@@ -117,7 +118,7 @@ function interactables(){
   if(!S.crypt.ledge&&nearP(W.ledgeItem.position,6)&&pp.y>8)L.push({pos:W.ledgeItem.position,r:6,text:"Забрати знахідку",obj:"Схованка на уступі",hold:.6,run:()=>{S.crypt.ledge=true;W.ledgeItem.clear();earn(800);addArtifact("scarab");toast("+800 грн",COL.orange)}});
   if(!S.crypt.crack&&nearP(V3(404,3,-287),6))L.push({pos:V3(404,4,-287),r:6,text:has("metaldetector")?"Розбити тріснуту стіну":"Оглянути стіну",obj:has("metaldetector")?"За стіною порожнина":"Тріснута кладка",hold:has("metaldetector")?1.2:0,run:breakCrack});
   if(S.crypt.crack&&!S.crypt.crackLoot&&nearP(W.crackRoom,6))L.push({pos:W.crackRoom.clone().setY(3),r:6,text:"Забрати скарб",obj:"Таємна схованка",hold:.6,run:()=>{S.crypt.crackLoot=true;W.crackLootG&&W.crackLootG.clear();earn(2500);toast("+2 500 грн",COL.orange);addArtifact(roll(luck()+4,3))}});
-  if(S.crypt.solved&&!S.crypt.taken&&nearP(W.tombAltar,7))L.push({pos:W.tombAltar,r:7,text:"Взяти Маску Тіні",obj:"Вівтар гробниці",hold:.8,run:()=>{S.crypt.taken=true;W.tombHolder.clear();addArtifact("shadowmask")}});
+  if(S.crypt.solved&&!S.crypt.taken&&nearP(W.tombAltar,7))L.push({pos:W.tombAltar,r:7,text:"Взяти Маску Тіні",obj:"Вівтар скарбниці",hold:.8,run:()=>{S.crypt.taken=true;W.tombHolder.clear();addArtifact("shadowmask")}});
   // обсерваторія
   if(nearP(W.obsStart,6))L.push({pos:W.obsStart,r:6,text:S.obs.solved?"Механізм розгадано":"Запуск механізму",obj:"Армілярна сфера",hold:0,run:startSimon});
   W.pillars.forEach((p,i)=>{if(nearP(p.pos,5.5))L.push({pos:p.pos,r:5.5,text:"Торкнутися кристала",obj:"Кристал "+(i+1),hold:0,run:()=>touchPillar(i)})});
@@ -150,8 +151,14 @@ function updateLabels(){
 const flashlight=new THREE.SpotLight(0xfff2d0,0,48,Math.PI/6,.45,1.2);scene.add(flashlight);scene.add(flashlight.target);
 let nightK=0,darkK=0;
 const inCrypt=()=>player.pos.x>CRYPT.x0&&player.pos.x<CRYPT.x1&&player.pos.z>CRYPT.z0&&player.pos.z<CRYPT.z1&&player.pos.y<14;
+const inDark=()=>inCrypt()||inCave();
+// факел у руці героя: з'являється в темних місцях, тепле мерехтливе світло
+const torchLight=new THREE.PointLight(0xff9a3c,0,44,1.5);scene.add(torchLight);let torchK=0;
+function buildPlayerTorch(){const u=player.model.userData,g=new THREE.Group();g.position.set(0,-2.1,-.3);u.armR.add(g);
+  box(g,[.32,2.6,.32],[0,-.4,0],"wood",{dyn:true});box(g,[.5,.5,.5],[0,-1.6,0],"ink",{dyn:true});const f=box(g,[.75,1.1,.75],[0,-2.2,0],"orange",{m:"neon",dyn:true});const f2=box(g,[.4,.7,.4],[0,-2.75,0],"#FFD27A",{m:"neon",dyn:true});
+  g.visible=false;player.torch={g,f,f2};}
 function updateLighting(dt,t){
-  const night=currentEvent&&currentEvent.id==="starnight"?1:0,dark=inCrypt()?1:0;
+  const night=currentEvent&&currentEvent.id==="starnight"?1:0,dark=inDark()?1:0;
   nightK+=(night-nightK)*Math.min(1,dt*1.2);darkK+=(dark-darkK)*Math.min(1,dt*2.5);
   const dimSky=Math.max(nightK*.75,darkK*.92);
   scene.background.copy(SKY_DAY).lerp(SKY_NIGHT,nightK).lerp(SKY_DARK,darkK);
@@ -162,7 +169,11 @@ function updateLighting(dt,t){
   const flOn=has("flashlight")&&S.flashlightOn;flashlight.intensity=flOn?(1.4+darkK*1.4+nightK*.6):0;
   const dir=new THREE.Vector3(-Math.sin(player.face),-.18,-Math.cos(player.face));flashlight.position.set(player.pos.x,player.modelY+5.4,player.pos.z);flashlight.target.position.copy(flashlight.position).addScaledVector(dir,10);
   W.murals.forEach(g=>g.visible=flOn);
-  W.cryptRoof.visible=!inCrypt();
-  for(const r of W.roofs){if(r.g===W.cryptRoof)continue;const inside=player.pos.x>r.x0&&player.pos.x<r.x1&&player.pos.z>r.z0&&player.pos.z<r.z1&&player.pos.y<r.top;r.g.visible=!inside}
+  // факел героя
+  torchK+=((dark?1:0)-torchK)*Math.min(1,dt*3);const tOn=torchK>.05;if(player.torch){player.torch.g.visible=tOn;const fl=1+Math.sin(t*17)*.08+Math.sin(t*29)*.05;player.torch.f.scale.set(fl,1.1-(fl-1)*2,fl);player.torch.f2.scale.setScalar(fl)}
+  if(tOn&&player.torch){player.torch.f.getWorldPosition(torchLight.position);torchLight.position.y+=.6}
+  torchLight.intensity=tOn?torchK*(1.6+Math.sin(t*13)*.18+Math.sin(t*7.3)*.14+Math.random()*.06):0;
+  if(W.guideTorch){const k=1.45+Math.sin(t*11)*.15+Math.sin(t*6.3)*.12;W.guideTorch.light.intensity=k;W.guideTorch.flame.scale.set(1+Math.sin(t*15)*.1,1+Math.sin(t*9)*.15,1)}
+  for(const r of W.roofs){const inside=player.pos.x>r.x0&&player.pos.x<r.x1&&player.pos.z>r.z0&&player.pos.z<r.z1&&player.pos.y<r.top;r.g.visible=!inside}
   W.fireLight.intensity=.7+Math.sin(t*13)*.12+Math.sin(t*7)*.1+nightK*.6;
 }

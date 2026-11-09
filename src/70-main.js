@@ -77,7 +77,7 @@ function loop(now){
   const back=V3(Math.sin(player.face)*6+Math.cos(player.face)*4,0,Math.cos(player.face)*6-Math.sin(player.face)*4);
   const goal=player.pos.clone().add(back);const dist=V3(companion.pos.x-goal.x,0,companion.pos.z-goal.z).length();
   if(dist>60)companion.pos.copy(goal);else{companion.pos.x+=(goal.x-companion.pos.x)*Math.min(1,dt*3);companion.pos.z+=(goal.z-companion.pos.z)*Math.min(1,dt*3)}
-  companion.pos.y+=(Math.max(floorAt(companion.pos.x,companion.pos.z),player.pos.y-6)-companion.pos.y)*Math.min(1,dt*10);if(inCrypt()||player.pos.y>groundH(player.pos.x,player.pos.z)+2)companion.pos.y+=(player.pos.y-companion.pos.y)*Math.min(1,dt*10);
+  companion.pos.y+=(Math.max(floorAt(companion.pos.x,companion.pos.z),player.pos.y-6)-companion.pos.y)*Math.min(1,dt*10);if(inDark()||player.pos.y>groundH(player.pos.x,player.pos.z)+2)companion.pos.y+=(player.pos.y-companion.pos.y)*Math.min(1,dt*10);
   if(dist>.6)companion.face+=angDiff(companion.face,Math.atan2(-(goal.x-companion.pos.x),-(goal.z-companion.pos.z)))*Math.min(1,dt*8);
   W.buddy.position.set(companion.pos.x,companion.pos.y+Math.abs(Math.sin(t*6))*(dist>1?.45:.06),companion.pos.z);W.buddy.rotation.y=companion.face;
   // анімації світу
@@ -93,7 +93,7 @@ function loop(now){
   // комахи й птахи (оновлюємо лише ближніх)
   for(const b of W.butterflies){if(b.home.distanceTo(player.pos)>160){b.g.visible=false;continue}b.g.visible=true;const a=t*b.sp+b.ph;b.g.position.set(b.home.x+Math.cos(a)*4+Math.sin(a*2.3)*1.5,b.home.y+1.5+Math.sin(a*3)*1.2,b.home.z+Math.sin(a)*4);b.g.rotation.y=-a;const f=Math.sin(t*18+b.ph)*1.1;b.l.rotation.y=f;b.r.rotation.y=-f}
   for(const b of W.birds){const a=t*b.sp+b.off;b.g.position.set(b.cx+Math.cos(a)*b.r,b.h+Math.sin(t*.6+b.ph)*3,b.cz+Math.sin(a)*b.r);b.g.rotation.y=-a+(b.sp>0?0:Math.PI);const f=Math.sin(t*7+b.ph)*.7;b.L.rotation.z=f;b.R.rotation.z=-f}
-  {const ps=W.gnats.geometry.attributes.position,sd=W.gnats.userData.seeds,cx=player.pos.x,cy=player.pos.y,cz=player.pos.z;for(let i=0;i<sd.length;i++){const s=sd[i],r=6+s[3]*14;ps.setXYZ(i,cx+Math.cos(t*.5*s[2]+s[0])*r,cy+3+Math.sin(t*s[2]+s[1])*2.5+s[3]*4,cz+Math.sin(t*.4*s[2]+s[1])*r)}ps.needsUpdate=true;W.gnats.material.opacity=inCrypt()?0:.5+nightK*.5;W.gnats.material.color.set(nightK>.5?"#FFF3A0":"#E8E2B0")}
+  {const ps=W.gnats.geometry.attributes.position,sd=W.gnats.userData.seeds,cx=player.pos.x,cy=player.pos.y,cz=player.pos.z;for(let i=0;i<sd.length;i++){const s=sd[i],r=6+s[3]*14;ps.setXYZ(i,cx+Math.cos(t*.5*s[2]+s[0])*r,cy+3+Math.sin(t*s[2]+s[1])*2.5+s[3]*4,cz+Math.sin(t*.4*s[2]+s[1])*r)}ps.needsUpdate=true;W.gnats.material.opacity=inDark()?0:.5+nightK*.5;W.gnats.material.color.set(nightK>.5?"#FFF3A0":"#E8E2B0")}
   updateLighting(dt,t);
   W.sky.position.copy(camera.position);W.stars.position.copy(camera.position);
   renderer.render(scene,camera);
@@ -106,10 +106,11 @@ function step(fn){return new Promise(r=>requestAnimationFrame(()=>{fn();r()}))}
 async function boot(hotData){
   const saved=(hotData&&hotData.save)||loadSave();
   if(saved)S=saved;ensurePuzzle();
+  await loadLogoTexture();
   await step(()=>{makeTextures();buildHeightGrid()});
   await step(buildWorld);
   await step(()=>{
-    player.model=personModel({explorer:true,shirt:"#E9C27F"});scene.add(player.model);
+    player.model=personModel({explorer:true,shirt:"#E9C27F"});scene.add(player.model);buildPlayerTorch();
     W.buddy=foxModel(.62);scene.add(W.buddy);buildBus();
     const sg=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1200;i++){const v=new THREE.Vector3(Math.random()-.5,Math.random()*.9+.08,Math.random()-.5).normalize().multiplyScalar(3200);sp.push(v.x,v.y,v.z)}
     sg.setAttribute("position",new THREE.Float32BufferAttribute(sp,3));W.stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xfff6dc,size:2.2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));scene.add(W.stars);
@@ -133,6 +134,7 @@ async function boot(hotData){
     player.pos.copy(W.home);player.modelY=player.pos.y;camFollow.copy(player.pos);companion.pos.copy(W.home).add(V3(5,0,-3));
     nextEventAt=performance.now()/1000+EVENT_EVERY;
     makeThumbs();$("qFox").src=THUMB.fox||"";$("stFox").src=THUMB.foxWave||"";
+    document.querySelectorAll(".logoImg").forEach(i=>i.src=LOGO_URL);
     if(matchMedia("(pointer:coarse)").matches)$("touchKeys").hidden=false;
     const b=$("bStart");b.disabled=false;b.textContent=saved&&saved.started?"Продовжити експедицію":"Почати експедицію";if(saved&&saved.started)$("bReset").hidden=false;
     renderHUD();resize();drawMinimap();requestAnimationFrame(loop);
