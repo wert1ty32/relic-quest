@@ -115,8 +115,7 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
 #tbtns{position:absolute;right:calc(20px + var(--safe-r));bottom:calc(150px + var(--safe-b));display:flex;gap:12px;align-items:flex-end;pointer-events:auto}
 #tbtns button{width:66px;height:66px;border-radius:50%;font-family:var(--f-display);font-weight:800;font-size:12px}
 #tAct{background:var(--orange);color:var(--white);box-shadow:0 5px 0 var(--orange-deep);width:84px!important;height:84px!important;font-size:22px!important}
-#tJump,#tRun{background:var(--paper);color:var(--forest);border:3px solid var(--forest)!important}
-#tRun.on{background:var(--forest);color:var(--cream)}
+#tJump{background:var(--paper);color:var(--forest);border:3px solid var(--forest)!important}
 
 /* модальні вікна */
 .scrim{position:absolute;inset:0;z-index:20;background:var(--scrim);display:grid;place-items:center;padding:calc(16px + var(--safe-t)) max(16px,var(--safe-r)) calc(16px + var(--safe-b)) max(16px,var(--safe-l))}
@@ -248,7 +247,76 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
   .intro{padding:4px 20px 22px}
   .modal .body{padding:16px}
 }
-@media (pointer:coarse){ #touch{display:block} .desk{display:none!important} }
+#bagMini{display:none}
+#tMenu,#rotate{display:none}
+#money .mrow{display:flex;gap:8px;align-items:center}
+@media (pointer:coarse){ #touch{display:block} .desk{display:none!important} #bFull{display:inline-flex} }
+@media (pointer:coarse) and (orientation:portrait){
+  #rotate{display:grid;position:fixed;inset:0;z-index:60;place-items:center;background:var(--forest);color:var(--cream);text-align:center;padding:24px}
+  #rotate div{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:280px}
+  #rotate svg{width:96px;height:96px;color:var(--lime-300);animation:tilt 2.2s ease-in-out infinite}
+  #rotate b{font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1.2;text-transform:uppercase}
+  #rotate span{font-weight:600;font-size:14px;color:var(--lime-100)}
+  @keyframes tilt{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+}
+/* Телефон горизонтально: лише найпотрібніше */
+@media (pointer:coarse) and (orientation:landscape){
+  #menu,#corner,#side,#map,#logo .t,#logo .s,#logo .brand,#money .r,#crosshair{display:none!important}
+  #bagMini{display:inline-flex;font-weight:800;font-size:12px;background:var(--lime-100);color:var(--forest);border:2px solid var(--forest);padding:7px 10px}
+  #money{top:calc(8px + var(--safe-t));left:calc(10px + var(--safe-l));transform:none;align-items:flex-start;gap:6px}
+  #money .mrow{flex-direction:column;align-items:flex-start;gap:6px}
+  #compass{position:fixed;top:calc(94px + var(--safe-t));left:50%;transform:translateX(-50%)}
+  #detector{position:fixed;top:calc(126px + var(--safe-t));left:50%;transform:translateX(-50%)}
+  #money .k{font-size:14px;padding:10px 13px;box-shadow:0 3px 0 var(--forest-deep)}
+  #compass{width:170px;height:26px} #compass span{font-size:10px}
+  #detector{font-size:11px;padding:6px 10px}
+  #logo{top:calc(12px + var(--safe-t));left:auto;right:calc(66px + var(--safe-r))}
+  #hearts{margin:0;padding:5px 8px} #hearts svg{width:15px;height:15px}
+  #tMenu{display:grid;place-items:center;position:absolute;top:calc(8px + var(--safe-t));right:calc(10px + var(--safe-r));width:46px;height:46px;border-radius:50%;background:var(--forest);color:var(--cream);box-shadow:0 4px 0 var(--forest-deep);pointer-events:auto;z-index:6}
+  #tMenu svg{width:22px;height:22px}
+  #quest{top:calc(8px + var(--safe-t));bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:min(40vw,400px);padding:6px 12px;gap:8px;border-radius:18px;box-shadow:0 3px 0 var(--forest)}
+  #quest img{display:none}
+  #quest .e{font-size:9.5px;padding:4px 8px}
+  #quest p{font-size:11.5px;margin-top:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #quest.open p{-webkit-line-clamp:unset}
+  #bubble{top:calc(96px + var(--safe-t));bottom:auto;left:calc(10px + var(--safe-l));max-width:34vw;font-size:17px;padding:8px 12px;border-radius:22px}
+  #event{top:calc(158px + var(--safe-t));bottom:auto;font-size:10.5px;padding:7px 12px;max-width:40vw}
+  #toasts,#event:not([hidden]) ~ #toasts{top:calc(158px + var(--safe-t))}
+  #event:not([hidden]) ~ #toasts{top:calc(194px + var(--safe-t))}
+  .toast{font-size:11.5px;padding:6px 11px;max-width:44vw}
+  #stick{left:calc(18px + var(--safe-l));bottom:calc(16px + var(--safe-b));width:118px;height:118px}
+  #stick i{width:50px;height:50px;margin:-25px 0 0 -25px}
+  #tbtns{right:calc(18px + var(--safe-r));bottom:calc(16px + var(--safe-b));gap:12px}
+  #tJump{width:58px!important;height:58px!important;display:grid;place-items:center} #tJump svg{width:24px;height:24px}
+  #tAct{width:82px!important;height:82px!important}
+  #prompt{font-size:12px;padding:4px 12px 4px 4px} #prompt .key{width:32px;height:32px;font-size:13px}
+  .wl.say{font-size:17px;max-width:180px}
+  /* вікна під низький екран */
+  .scrim{padding:calc(8px + var(--safe-t)) max(10px,var(--safe-r)) calc(8px + var(--safe-b)) max(10px,var(--safe-l))}
+  .modal{border-radius:24px;box-shadow:0 5px 0 var(--forest)}
+  .modal header{padding:10px 14px 9px 18px}
+  .modal h2{font-size:15px} .modal h2 .pill{padding:8px 12px}
+  .x{width:40px;height:40px}
+  .modal .body{padding:12px 16px 16px}
+  .lead{font-size:13px;margin-bottom:10px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+  .row{padding:10px 12px;gap:10px} .row .ic{width:40px;height:40px} .row h3{font-size:13px} .row p{font-size:12px}
+  .btn.big{font-size:15px;padding:12px 20px;min-height:48px}
+  .keypad{grid-template-columns:repeat(3,58px);gap:6px} .keypad button{height:42px;font-size:16px} .display{font-size:22px;min-height:46px;padding:6px;margin-bottom:8px}
+  .riddle q{font-size:15px;margin-bottom:12px}
+  #mapWrap{max-height:calc(100vh - 110px)}
+  .mapgrid{grid-template-columns:minmax(0,1fr) 200px}
+  /* стартовий екран: дві колонки, прокрутка */
+  #start .modal{width:min(860px,100%);overflow:auto;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:center}
+  #start .brandband{grid-column:1/-1}
+  .brandband{padding:8px} .brandband img{height:40px}
+  .hero{grid-template-columns:1fr;padding:12px 4px 14px 20px} .hero .fox{display:none}
+  .hero h1 .a{font-size:34px} .hero h1 .b{font-size:24px;padding:10px 16px;margin-top:6px} .hero .sub{margin-top:10px;font-size:11px;padding:8px 12px}
+  .intro{padding:12px 20px 14px 8px;gap:10px} .intro p{font-size:12.5px;line-height:1.45}
+  .keys span{font-size:11px;padding:5px 9px}
+}
+.mmenu{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.mmenu .btn{justify-content:flex-start;min-height:52px}
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 
@@ -257,7 +325,7 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
   <div id="crosshair" hidden></div>
 
   <div class="hud" id="logo"><span class="brand"><img class="logoImg" alt="Національний університет «Львівська політехніка» · Tourism Department" width="277" height="127"></span><span class="pill cap t">RELIC QUEST</span><span class="pill cap s">ТАЄМНИЦІ АРТЕФАКТІВ</span><div id="hearts" aria-label="Здоров'я"></div></div>
-  <div class="hud" id="money"><span class="pill cap k" id="kVal">0 грн</span><span class="pill cap r" id="rVal">≈ +0 грн / хв</span><div id="compass" hidden aria-label="Компас"><div class="strip" id="cStrip"></div><div class="mid"></div></div><span class="pill" id="detector" hidden></span></div>
+  <div class="hud" id="money"><div class="mrow"><span class="pill cap k" id="kVal">0 грн</span><span class="pill cap" id="bagMini">0/5</span></div><span class="pill cap r" id="rVal">≈ +0 грн / хв</span><div id="compass" hidden aria-label="Компас"><div class="strip" id="cStrip"></div><div class="mid"></div></div><span class="pill" id="detector" hidden></span></div>
   <div class="hud pill" id="event" hidden></div>
   <div class="hud" id="toasts" aria-live="polite"></div>
   <div class="hud" id="side">
@@ -282,7 +350,9 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
   <div id="prompt" hidden><span class="key"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="none" stroke="#D2601A" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 200" id="pRing"/></svg><span id="pKey">E</span></span><span><span id="pText">Копати</span><small id="pObj"></small></span></div>
   <div id="labels"></div>
 
-  <div id="touch"><div id="stick"><i></i></div><div id="tbtns"><button id="tRun" aria-label="Біг">БІГ</button><button id="tJump" aria-label="Стрибок">СТРИБ</button><button id="tAct" aria-label="Дія">E</button></div></div>
+  <div id="touch"><div id="stick"><i></i></div><div id="tbtns"><button id="tJump" aria-label="Стрибок"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><button id="tAct" aria-label="Дія">E</button></div>
+    <button class="hud" id="tMenu" aria-label="Меню"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+  <div id="rotate" aria-live="polite"><div><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><rect x="20" y="6" width="24" height="40" rx="4"/><path d="M29 40h6"/><path d="M8 50a26 26 0 0 0 34 8"/><path d="M36 54l6 4-2 7"/></svg><b>Поверни телефон горизонтально</b><span>Relic Quest грається в горизонтальному режимі</span></div></div>
   <div id="fade"></div>
 
   <div class="scrim" id="start">
@@ -295,8 +365,8 @@ button:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
       <div class="intro">
         <p>Ти — молодий дослідник із власним музеєм. Розкопуй реліквії, досліджуй їх у лабораторії, виставляй артефакти й заробляй на відвідувачах, що приїжджають автобусом. А потім вирушай до стародавніх місць: Печери Шепоту, Затопленого храму, Замку Тіней та обсерваторії.</p>
         <div class="keys desk"><span><b>WASD</b> рух</span><span><b>Shift</b> біг</span><span><b>Миша</b> тягни — камера</span><span><b>R</b> Shift Lock</span><span><b>Пробіл</b> стрибок</span><span><b>E</b> дія</span><span><b>F</b> ліхтарик</span><span><b>Q</b> аптечка</span><span><b>H</b> дім</span><span><b>M</b> карта</span><span><b>B</b> магазин</span><span><b>I</b> інвентар</span></div>
-        <div class="keys" id="touchKeys" hidden><span>Джойстик — рух</span><span>Тягни по екрану — камера</span><span><b>E</b> дія</span><span><b>БІГ</b> перемикач бігу</span></div>
-        <div class="startrow"><button class="btn o big" id="bStart" disabled>Завантаження світу…</button><button class="btn ghost" id="bReset" hidden>Почати з нуля</button><span class="stamp cap">Прогрес зберігається</span></div>
+        <div class="keys" id="touchKeys" hidden><span>Джойстик — рух</span><span>Тягни по екрану — камера</span><span><b>E</b> дія</span><span>Джойстик до краю — біг</span></div>
+        <div class="startrow"><button class="btn o big" id="bStart" disabled>Завантаження світу…</button><button class="btn big" id="bFull" hidden>На весь екран</button><button class="btn ghost" id="bReset" hidden>Почати з нуля</button><span class="stamp cap">Прогрес зберігається</span></div>
       </div>
     </div>
   </div>

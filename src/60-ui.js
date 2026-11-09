@@ -42,6 +42,7 @@ function renderHUD(){
   $("kVal").innerHTML="<i>₴</i>&nbsp;"+money(S.money);
   $("rVal").textContent="≈ +"+fmt(ratePerMin())+" грн / хв"+(payMult()>1?"  ·  ×"+String(+payMult().toFixed(2)).replace(".",","):"");
   $("bagVal").textContent=S.unknown+" / "+capacity()+" реліквій";
+  $("bagMini").textContent="Реліквії "+S.unknown+"/"+capacity();
   $("colVal").textContent="Колекція: "+Object.keys(S.discovered).length+" / "+ART.length+" · Відвідувачів: "+fmt(S.visitors);
   $("qStep").textContent="Завдання "+S.quest+" / "+QUESTS.length;$("qText").textContent=QUESTS[S.quest-1].t;
   $("hearts").innerHTML=Array.from({length:MAX_HP},(_,i)=>`<svg viewBox="0 0 24 24" fill="${i<S.hp?"#D33A2C":"none"}" stroke="#1E5A2B" stroke-width="2"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>`).join("");

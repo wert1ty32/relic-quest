@@ -16,7 +16,9 @@ function physics(dt){
   let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+stick.x;
   let iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+stick.y;
   let mag=Math.hypot(ix,iz);if(mag>1){ix/=mag;iz/=mag;mag=1}
-  const running=(keys.ShiftLeft||keys.ShiftRight||runToggle)&&mag>.1;
+  // біг: Shift на клавіатурі або джойстик, дотиснутий до краю
+  const stickMag=Math.hypot(stick.x,stick.y);
+  const running=(keys.ShiftLeft||keys.ShiftRight||runToggle||stickMag>.88)&&mag>.1;
   player.runBlend+=((running?1:0)-player.runBlend)*Math.min(1,dt*4);
   const sp=(WALK+(RUN-WALK)*player.runBlend)*mag;
   const fx=-Math.sin(camYaw),fz=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);

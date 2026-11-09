@@ -47,7 +47,21 @@ stEl.addEventListener("pointerup",endStick);stEl.addEventListener("pointercancel
 function moveStick(e){const r=stEl.getBoundingClientRect();let dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}stick.x=dx;stick.y=dy;knob.style.transform=`translate(${dx*36}px,${dy*36}px)`}
 const tAct=$("tAct");tAct.addEventListener("pointerdown",e=>{touchAct=true;tAct.setPointerCapture(e.pointerId)});["pointerup","pointercancel"].forEach(t=>tAct.addEventListener(t,()=>touchAct=false));
 $("tJump").addEventListener("pointerdown",()=>player.jumpBuf=.15);
-$("tRun").addEventListener("pointerdown",()=>{runToggle=!runToggle;$("tRun").classList.toggle("on",runToggle)});
+// меню на телефоні: усі розділи в одному місці
+function openMobileMenu(){
+  const it=[["Колекція",openCollection,"bCol"],["Магазин",openStore,"bStore"],["Інвентар",openInv,"bInv"],["Покращення",openUpg,"bShop"],["Карта",openMap,"bMap"],["Дім",goHome,"bHome"],["Нова експедиція",openReb,"bReb"]];
+  openModal("menu",'<span class="pill cap">Меню</span>',`<div class="mmenu">${it.map(([n,,id],i)=>`<button class="btn ${id==="bStore"||id==="bHome"?"o":id==="bReb"?"ghost":""}" data-m="${i}">${$(id).querySelector("svg").outerHTML}${n}</button>`).join("")}
+  <button class="btn ghost" id="mSnd">${muted?"Увімкнути звук":"Вимкнути звук"}</button>${document.fullscreenEnabled?`<button class="btn ghost" id="mFs">${document.fullscreenElement?"Вийти з повного екрана":"На весь екран"}</button>`:""}</div>`);
+  $("mBody").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const f=it[+b.dataset.m][1];closeModal();f()});
+  $("mSnd").onclick=()=>{audioInit();muted=!muted;$("sndWave").style.display=muted?"none":"";closeModal()};
+  const fs=$("mFs");if(fs)fs.onclick=()=>{document.fullscreenElement?document.exitFullscreen():goFullscreen();closeModal()};
+}
+$("tMenu").onclick=()=>{audioInit();openMobileMenu()};
+$("quest").addEventListener("click",()=>$("quest").classList.toggle("open"));
+// повний екран і горизонтальна орієнтація (де браузер дозволяє)
+function goFullscreen(){try{const el=document.documentElement,r=el.requestFullscreen?el.requestFullscreen({navigationUI:"hide"}):null;
+  const lock=()=>{try{const o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock("landscape");if(o&&o.catch)o.catch(()=>{})}catch(e){}};
+  if(r&&r.then)r.then(lock).catch(()=>{});else lock()}catch(e){}}
 $("slock").onclick=()=>setShiftLock(!shiftLock);
 $("sound").onclick=()=>{audioInit();muted=!muted;$("sndWave").style.display=muted?"none":"";toast(muted?"Звук вимкнено":"Звук увімкнено")};
 $("bCol").onclick=openCollection;$("bShop").onclick=openUpg;$("bStore").onclick=openStore;$("bInv").onclick=openInv;$("bMap").onclick=openMap;$("bHome").onclick=goHome;$("bReb").onclick=openReb;
@@ -136,6 +150,7 @@ async function boot(hotData){
     makeThumbs();$("qFox").src=THUMB.fox||"";$("stFox").src=THUMB.foxWave||"";
     document.querySelectorAll(".logoImg").forEach(i=>i.src=LOGO_URL);
     if(matchMedia("(pointer:coarse)").matches)$("touchKeys").hidden=false;
+    if(matchMedia("(pointer:coarse)").matches&&document.fullscreenEnabled)$("bFull").hidden=false;
     const b=$("bStart");b.disabled=false;b.textContent=saved&&saved.started?"Продовжити експедицію":"Почати експедицію";if(saved&&saved.started)$("bReset").hidden=false;
     renderHUD();resize();drawMinimap();requestAnimationFrame(loop);
     window.claude?.hot?.snapshot?.(()=>({save:S}));
@@ -144,6 +159,7 @@ async function boot(hotData){
 let resetArmed=false;
 $("bReset").onclick=()=>{if(!resetArmed){resetArmed=true;$("bReset").textContent="Точно? Натисни ще раз";return}
   try{localStorage.removeItem(SAVE_KEY)}catch(e){}location.reload()};
+$("bFull").onclick=()=>{goFullscreen();$("bStart").click()};
 $("bStart").onclick=()=>{
   audioInit();$("start").hidden=true;started=true;S.started=true;save();canvas.focus();camYaw=Math.PI;
   setTimeout(()=>foxSay(S.quest===1?"Привіт! Я піду з тобою. "+QUESTS[0].t:QUESTS[S.quest-1].t),400);
